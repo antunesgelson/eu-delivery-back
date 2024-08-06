@@ -12,7 +12,6 @@ export class IsUniqueValidator implements ValidatorConstraintInterface {
 
 
     async validate(value: any, args: ValidationArguments): Promise<boolean> {
-        console.log('chegou aqui')
 
         const [tableName, columnName] = args.constraints;
         const prefixDb = this.configService.get<string>('PREFIX_DB');
