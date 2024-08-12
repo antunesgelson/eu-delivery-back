@@ -8,7 +8,7 @@ import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./auth.strategy";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { AuthUsuarioService } from "./services/authUsuario.service";
-
+import { LoginService } from "./services/login.service";
 
 @Module({
     imports: [
@@ -16,7 +16,7 @@ import { AuthUsuarioService } from "./services/authUsuario.service";
         TypeOrmModule.forFeature([UsuarioEntiy]),
         JwtModule.register({
             secret: process.env.JWT_SECRET,
-            signOptions: { expiresIn: 'never' }
+            signOptions: { expiresIn: '30d' }
         }),
         forwardRef(() => UsuarioModule), // Resolver dependência circular
     ],
@@ -25,6 +25,7 @@ import { AuthUsuarioService } from "./services/authUsuario.service";
         JwtAuthGuard,
         AuthUsuarioService,
         JwtStrategy,
+        LoginService
     ],
     exports: [AuthUsuarioService]
 })

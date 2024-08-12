@@ -12,6 +12,8 @@ export class AuthUsuarioService {
         @InjectRepository(UsuarioEntiy) private usuarioRepository: Repository<UsuarioEntiy>) { }
 
     async exec(authUsuarioDTO: AuthUsuarioDTO) {
+
+        console.log("authUsuarioDTO =>", authUsuarioDTO);
         const payload = {
             sub: authUsuarioDTO.id,
             email: authUsuarioDTO.email,
