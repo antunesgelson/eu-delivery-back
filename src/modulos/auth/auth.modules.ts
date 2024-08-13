@@ -6,14 +6,16 @@ import { UsuarioEntiy } from "../usuario/usuario.entity";
 import { UsuarioModule } from "../usuario/usuario.module";
 import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./auth.strategy";
+import { CodigoWpEntity } from "./codigos_wp.entity";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { AuthUsuarioService } from "./services/authUsuario.service";
+import { GetCodeService } from "./services/getCode.service";
 import { LoginService } from "./services/login.service";
 
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
-        TypeOrmModule.forFeature([UsuarioEntiy]),
+        TypeOrmModule.forFeature([UsuarioEntiy, CodigoWpEntity]),
         JwtModule.register({
             secret: process.env.JWT_SECRET,
             signOptions: { expiresIn: '30d' }
@@ -25,7 +27,8 @@ import { LoginService } from "./services/login.service";
         JwtAuthGuard,
         AuthUsuarioService,
         JwtStrategy,
-        LoginService
+        LoginService,
+        GetCodeService,
     ],
     exports: [AuthUsuarioService]
 })

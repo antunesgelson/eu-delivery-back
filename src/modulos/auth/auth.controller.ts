@@ -4,6 +4,7 @@ import { AdicionarUsuarioService } from "../usuario/services/adicionarUsuario.se
 import { GetCodeDTO } from "./dto/getCode.dto";
 import { LoginDTO } from "./dto/login.dto";
 import { AuthUsuarioService } from "./services/authUsuario.service";
+import { GetCodeService } from "./services/getCode.service";
 import { LoginService } from "./services/login.service";
 
 
@@ -12,12 +13,13 @@ export class AuthController {
   constructor(private adicionarUsuario: AdicionarUsuarioService,
     private authUsuarioService: AuthUsuarioService,
     private loginService: LoginService,
+    private getCodeService: GetCodeService
 
   ) { }
 
   @Get('wp')
   async getCode(@Query() getCodeDTO: GetCodeDTO) {
-    //  return this.getCodeService.exec(getCodeDTO);
+    return this.getCodeService.exec(getCodeDTO);
   }
 
 
