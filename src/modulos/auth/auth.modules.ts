@@ -11,6 +11,7 @@ import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { AuthUsuarioService } from "./services/authUsuario.service";
 import { GetCodeService } from "./services/getCode.service";
 import { LoginService } from "./services/login.service";
+import { VerifyCodeService } from "./services/verifyCode.service";
 
 @Module({
     imports: [
@@ -29,6 +30,7 @@ import { LoginService } from "./services/login.service";
         JwtStrategy,
         LoginService,
         GetCodeService,
+        VerifyCodeService,
     ],
     exports: [AuthUsuarioService]
 })

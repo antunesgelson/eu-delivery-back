@@ -13,7 +13,6 @@ export class AuthUsuarioService {
 
     async exec(authUsuarioDTO: AuthUsuarioDTO) {
 
-        console.log("authUsuarioDTO =>", authUsuarioDTO);
         const payload = {
             sub: authUsuarioDTO.id,
             email: authUsuarioDTO.email,

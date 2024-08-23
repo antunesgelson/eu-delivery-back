@@ -1,19 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from '@nestjs/typeorm';
+import axios from "axios";
 import { Repository } from 'typeorm';
-import { Client, ClientOptions } from 'whatsapp-web.js';
 import { CodigoWpEntity } from "../codigos_wp.entity";
 import { GetCodeDTO } from "../dto/getCode.dto";
 
-
-
-const clientOptions: ClientOptions = {
-    puppeteer: {
-        headless: false, // ou false se você quiser ver o navegador
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    }
-};
-export const client = new Client(clientOptions);
 @Injectable()
 export class GetCodeService {
     constructor(
@@ -23,31 +14,17 @@ export class GetCodeService {
 
     async exec(getCodeDTO: GetCodeDTO) {
         const code = this.generateRandomCode();
-
-        client.on('qr', (qr) => {
-            // Mostrar o código QR e pedir ao usuário que faça o scan com o WhatsApp no celular
-            // console.log('QR RECEBIDO', qr);
-        });
-
-        client.on('ready', () => {
-            console.log('Client is ready!');
-            this.enviarMensagem(getCodeDTO.tel, `Seu código de verificação é: ${code}`);
-        });
-
-        client.on('message', msg => {
-            if (msg.body == '!ping') {
-                msg.reply('pong');
-            }
-        });
+        const timeValidate = new Date();
+        timeValidate.setMinutes(timeValidate.getMinutes() + 2); // 2 minutos de validade
 
         let codigo = new CodigoWpEntity();
         codigo.codigo = Number(code);
         codigo.telefone = getCodeDTO.tel;
-        console.log("codigo =>", codigo);
+        codigo.validade = timeValidate;
 
-        // await this.codigoWpRepository.save(codigo)
-        client.initialize();
-        return { message: 'Código gerado e enviado via WhatsApp', code };
+        await this.codigoWpRepository.save(codigo)
+        this.enviarMensagem(getCodeDTO.tel, `Seu código de verificação é: ${code}`);
+        return { message: 'Código gerado e enviado via WhatsApp' };
     }
 
     private generateRandomCode(): string {
@@ -57,7 +34,15 @@ export class GetCodeService {
     private async enviarMensagem(numero, texto) {
         // Certifique-se de incluir o código do país e remover espaços ou caracteres especiais
         let numeroFormatado = numero.replace(/\D/g, "") + "@c.us";
-        await client.sendMessage(numeroFormatado, texto);
+        axios.get(`https://emporio-wp.seu.dev.br/bot/enviar`, {
+            params: {
+                numero: numeroFormatado,
+                mensagem: texto
+            },
+            headers: {
+                'Authorization': 'Bearer jfjj5448fgjJJjJjkUFrHJHBVCCfDGHjKklf54F4Ff4f4Ff6f97f6flJUGlGyf' // Token de autorização para evitar requisição maliciosa
+            }
+        })
     }
 
 

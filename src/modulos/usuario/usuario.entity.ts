@@ -21,6 +21,9 @@ export class UsuarioEntiy {
     @Column({ type: 'date' })
     dataDeNascimento: Date;
 
+    @Column({ type: 'boolean', default: false })
+    isAdmin: boolean;
+
     @OneToMany(() => EnderecoEntity, (endereco) => endereco.usuario)
     enderecos: EnderecoEntity[];
 
