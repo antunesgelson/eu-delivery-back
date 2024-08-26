@@ -1,8 +1,8 @@
 import { forwardRef, Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { AdicionarUsuarioService } from "./services/adicionarUsuario.service";
-import { UsuarioEntiy } from "./usuario.entity";
 import { AuthModules } from "../auth/auth.modules";
+import { AdicionarUsuarioService } from "./services/adicionarUsuario.service";
+import { UsuarioEntiy } from "./usuarios.entity";
 
 
 @Module({

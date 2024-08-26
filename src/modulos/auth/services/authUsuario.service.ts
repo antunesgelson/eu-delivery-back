@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UsuarioEntiy } from 'src/modulos/usuario/usuario.entity';
+import { UsuarioEntiy } from 'src/modulos/usuario/usuarios.entity';
 import { Repository } from 'typeorm';
 import { AuthUsuarioDTO } from '../dto/authUsuario.dto';
 

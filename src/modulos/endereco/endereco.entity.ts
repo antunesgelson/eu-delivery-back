@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { UsuarioEntiy } from '../usuario/usuario.entity';
+import { UsuarioEntiy } from '../usuario/usuarios.entity';
 
 @Entity('enderecos')
 export class EnderecoEntity {

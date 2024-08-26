@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { AdicionaisEntity } from "../adicionais/adicionais.entity";
-import { CategoriaEntity } from "../categoria/categoria.entity";
-import { IngredientesEntity } from "../ingredientes/ingredientes.entity";
+import { AdicionaisEntity } from "../adicional/adicionais.entity";
+import { CategoriaEntity } from "../categoria/categorias.entity";
+import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
 
 @Entity('produtos')
 export class ProdutoEntity {
@@ -9,7 +9,7 @@ export class ProdutoEntity {
     id: number;
 
     @ManyToOne(() => CategoriaEntity, (categoria) => categoria.produtos)
-    categoria: string;
+    categoria: CategoriaEntity;
 
     @Column()
     titulo: string;
