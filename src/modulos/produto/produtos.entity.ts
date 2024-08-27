@@ -1,8 +1,7 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { AdicionaisEntity } from "../adicional/adicionais.entity";
+import { Column, CreateDateColumn, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { CategoriaEntity } from "../categoria/categorias.entity";
 import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
-
+import { ProdutosIngredientesEntity } from "./produtoIngrediente.entity";
 @Entity('produtos')
 export class ProdutoEntity {
     @PrimaryGeneratedColumn()
@@ -32,11 +31,12 @@ export class ProdutoEntity {
     @Column()
     servingSize: number;
 
-    @OneToMany(() => IngredientesEntity, (ingredientes) => ingredientes.produto)
-    ingredientes: IngredientesEntity[];
+    @OneToMany(() => ProdutosIngredientesEntity, (produtosIngredientes) => produtosIngredientes.produto)
+    produtosIngredientes: ProdutosIngredientesEntity[];
 
-    @OneToMany(() => AdicionaisEntity, (adicionais) => adicionais.produto)
-    adicionais: AdicionaisEntity[];
+    @ManyToMany(() => IngredientesEntity)
+    @JoinTable()
+    adicionais: IngredientesEntity[];
 
     @CreateDateColumn()
     created_at?: Date;

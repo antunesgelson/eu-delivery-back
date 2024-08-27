@@ -1,13 +1,10 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { ProdutoEntity } from "../produto/produtos.entity";
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { ProdutosIngredientesEntity } from "../produto/produtoIngrediente.entity";
 
 @Entity('ingredientes')
 export class IngredientesEntity {
     @PrimaryGeneratedColumn()
     id: number;
-
-    @ManyToOne(() => ProdutoEntity, (produto) => produto.ingredientes)
-    produto: ProdutoEntity;
 
     @Column()
     nome: string;
@@ -15,11 +12,8 @@ export class IngredientesEntity {
     @Column()
     valor: string;
 
-    @Column()
-    removivel: boolean;
-
-    @Column()
-    quantia: number;
+    @OneToMany(() => ProdutosIngredientesEntity, (produtosIngredientes) => produtosIngredientes.ingrediente)
+    produtosIngredientes: ProdutosIngredientesEntity[];
 
     @CreateDateColumn()
     created_at?: Date;

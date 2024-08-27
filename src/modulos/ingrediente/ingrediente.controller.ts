@@ -1,13 +1,13 @@
 import { Body, Controller, Post } from "@nestjs/common";
 import { IngredienteDTO } from "./dto/ingrediente.dto";
-import { AddIngredienteService } from "./services/addIngrediente.service";
+import { IngredienteService } from "./ingrediente.service";
 
 @Controller('ingredientes')
 export class IngredientesController {
-    constructor(private addIngredientes: AddIngredienteService) { }
+    constructor(private ingredienteService: IngredienteService) { }
 
     @Post('cadastrar')
     async createIngredientes(@Body() ingredientes: IngredienteDTO) {
-        return this.addIngredientes.exec(ingredientes);
+        return this.ingredienteService.create(ingredientes);
     }
 }

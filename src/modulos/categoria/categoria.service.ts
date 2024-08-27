@@ -1,16 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { CategoriaEntity } from "../categorias.entity";
-import { CategoriaDTO } from "../dto/categoria.dto";
+import { CategoriaEntity } from "./categorias.entity";
+import { CategoriaDTO } from "./dto/categoria.dto";
 
 @Injectable()
-export class CreateCategoryService {
+export class CategoriaSerivice {
     constructor(@InjectRepository(CategoriaEntity)
-    private categoriaRepository: Repository<CategoriaEntity>,
+    private categoriaRepository: Repository<CategoriaEntity>
+
     ) { }
 
-    async exec(categiria: CategoriaDTO) {
+    async create(categiria: CategoriaDTO) {
         const isValid = await this.categoriaRepository.findOne({ where: { titulo: categiria.titulo } });
         if (isValid) return { mensagem: 'Categoria já existe.' };
 
@@ -18,4 +19,16 @@ export class CreateCategoryService {
 
         return { mensagem: 'Categoria criada com sucesso.', categoria };
     }
+
+    async list() {
+        return await this.categoriaRepository.find({
+        });
+    }
+
+    async listDetails() {
+        return await this.categoriaRepository.find({
+            relations: ['produtos'], // Carregar os produtos relacionados
+        });
+    }
+
 }
