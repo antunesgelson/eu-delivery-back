@@ -1,4 +1,4 @@
-import { IsEmail, IsNumber, IsOptional, IsPhoneNumber, IsString } from "class-validator";
+import { IsBoolean, IsEmail, IsNumber, IsOptional, IsPhoneNumber, IsString } from "class-validator";
 
 
 export class AuthUsuarioDTO {
@@ -16,5 +16,8 @@ export class AuthUsuarioDTO {
     @IsOptional()
     @IsPhoneNumber()
     tel: string;
+
+    @IsBoolean()
+    isAdmin:boolean = false
 
 }

@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post, SetMetadata } from "@nestjs/common";
 import { CategoriaSerivice } from "./categoria.service";
 import { CategoriaDTO } from "./dto/categoria.dto";
+import { IsPublic } from "../auth/decorators/isPublic.decorator";
 
 
 @Controller('categoria')
@@ -9,11 +10,13 @@ export class CategoriaController {
         private categoriaService: CategoriaSerivice,
     ) { }
 
+    @SetMetadata('isAdmin',true)
     @Post('cadastrar')
     async cadastrar(@Body() dadosCategoria: CategoriaDTO) {
         return this.categoriaService.create(dadosCategoria);
     }
 
+    @IsPublic()
     @Get('listar')
     async listar() {
         return this.categoriaService.list();

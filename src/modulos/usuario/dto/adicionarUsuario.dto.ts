@@ -8,12 +8,10 @@ export class AdicionarUsuarioDTO {
 
     @IsOptional()
     @IsEmail(undefined, { message: 'E-mail inválido.' })
-    @IsUnique('usuarios', 'email', { message: 'E-mail já cadastrado.' })
     email?: string;
 
     @IsOptional()
     @IsPhoneNumber('BR', { message: 'Telefone inválido.' })
-    @IsUnique('usuarios', 'tel', { message: 'Telefone já cadastrado.' })
     tel?: string;
 
     @IsNotEmpty({ message: 'Token obrigatório.' })

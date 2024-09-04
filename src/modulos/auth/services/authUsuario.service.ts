@@ -17,7 +17,8 @@ export class AuthUsuarioService {
             sub: authUsuarioDTO.id,
             email: authUsuarioDTO.email,
             nome: authUsuarioDTO.nome,
-            tel: authUsuarioDTO.tel
+            tel: authUsuarioDTO.tel,
+            isAdmin: authUsuarioDTO.isAdmin
         }
 
         const jwtToken = await this.jwtService.sign(payload)

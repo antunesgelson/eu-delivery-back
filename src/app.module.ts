@@ -9,6 +9,8 @@ import { IngredienteModule } from './modulos/ingrediente/ingrediente.module';
 import { ProdutoModule } from './modulos/produto/produto.module';
 import { UsuarioModule } from './modulos/usuario/usuario.module';
 import { SharedModule } from './shared/shared.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './modulos/auth/guards/jwt-auth.guard';
 
 
 @Module({
@@ -23,6 +25,6 @@ import { SharedModule } from './shared/shared.module';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(databaseConfig()),
   ],
-
+  providers:[{provide:APP_GUARD, useClass:JwtAuthGuard}]
 })
 export class AppModule { }

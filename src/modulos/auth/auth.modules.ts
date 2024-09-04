@@ -10,7 +10,6 @@ import { CodigoWpEntity } from "./codigos_wp.entity";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { AuthUsuarioService } from "./services/authUsuario.service";
 import { GetCodeService } from "./services/getCode.service";
-import { LoginService } from "./services/login.service";
 import { VerifyCodeService } from "./services/verifyCode.service";
 
 @Module({
@@ -28,7 +27,6 @@ import { VerifyCodeService } from "./services/verifyCode.service";
         JwtAuthGuard,
         AuthUsuarioService,
         JwtStrategy,
-        LoginService,
         GetCodeService,
         VerifyCodeService,
     ],

@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsPhoneNumber } from "class-validator";
+import { IsEmail, IsOptional, IsPhoneNumber, IsString } from "class-validator";
 
 export class LoginDTO {
     @IsOptional()
@@ -8,4 +8,5 @@ export class LoginDTO {
     @IsOptional()
     @IsPhoneNumber()
     tel: string;
+
 }
