@@ -10,7 +10,7 @@ export class CategoriaController {
         private categoriaService: CategoriaSerivice,
     ) { }
 
-    @SetMetadata('isAdmin',true)
+    @SetMetadata('isAdmin',true)//deixar rota protegida apenas para uso do admin.. 
     @Post('cadastrar')
     async cadastrar(@Body() dadosCategoria: CategoriaDTO) {
         return this.categoriaService.create(dadosCategoria);
