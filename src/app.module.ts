@@ -11,6 +11,7 @@ import { UsuarioModule } from './modulos/usuario/usuario.module';
 import { SharedModule } from './shared/shared.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modulos/auth/guards/jwt-auth.guard';
+import { EnderecoModule } from './modulos/endereco/endereco.module';
 
 
 @Module({
@@ -22,6 +23,7 @@ import { JwtAuthGuard } from './modulos/auth/guards/jwt-auth.guard';
     IngredienteModule,
     AdicinaisModule,
     SharedModule,
+    EnderecoModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(databaseConfig()),
   ],
