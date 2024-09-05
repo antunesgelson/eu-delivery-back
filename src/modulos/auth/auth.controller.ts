@@ -6,14 +6,15 @@ import { VerifyCodeDTO } from "./dto/verifyCode.dto";
 import { GetCodeService } from "./services/getCode.service";
 import { VerifyCodeService } from "./services/verifyCode.service";
 import { IsPublic } from "./decorators/isPublic.decorator";
+import { AuthUsuarioService } from "./services/authUsuario.service";
 
 @Controller('auth')
 export class AuthController {
   constructor(private adicionarUsuario: AdicionarUsuarioService,
     private getCodeService: GetCodeService,
     private verifyCodeService: VerifyCodeService,
+    private authUsuarioService:AuthUsuarioService
   ) { }
-
 
   @IsPublic()
   @Post('wp')
@@ -24,7 +25,9 @@ export class AuthController {
   @IsPublic()
   @Post('entraroucadastrar')
   async cadastrar(@Body() dadosUsuario: AdicionarUsuarioDTO) {
-    return await this.adicionarUsuario.exec(dadosUsuario);
+    const usuario = await this.adicionarUsuario.exec(dadosUsuario);
+    return this.authUsuarioService.exec(usuario);
+
   }
 
   @IsPublic()
