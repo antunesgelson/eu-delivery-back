@@ -1,4 +1,5 @@
-import { IsDate, IsNumber, isNumber, IsOptional, isPort, IsString } from "class-validator";
+import { Type } from "class-transformer";
+import { IsDate, IsDateString, IsNumber, isNumber, IsOptional, isPort, IsString } from "class-validator";
 
 export class UsuarioEditarDTO{
 
@@ -15,6 +16,6 @@ export class UsuarioEditarDTO{
     cpf:string
 
     @IsOptional()
-    @IsString()
-    dataDeNascimento:string
+    @IsDateString()
+    dataDeNascimento:string;
 }
