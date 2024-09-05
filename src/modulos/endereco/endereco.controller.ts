@@ -1,5 +1,4 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UsePipes, ValidationPipe } from "@nestjs/common";
-import { IsPublic } from "../auth/decorators/isPublic.decorator";
 import { EnderecoService } from "./endereco.service";
 import { EnderecoAdicionarDTO } from "./dto/enderecoAdicionar.dto";
 import { EnderecoEditarDTO } from "./dto/enderecoEditar.dto";

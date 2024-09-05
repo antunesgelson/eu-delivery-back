@@ -16,7 +16,7 @@ export class AuthController {
 
 
   @IsPublic()
-  @Get('wp')
+  @Post('wp')
   async getCode(@Query() getCodeDTO: GetCodeDTO) {
     return this.getCodeService.exec(getCodeDTO);
   }

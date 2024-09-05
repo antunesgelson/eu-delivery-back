@@ -23,7 +23,8 @@ export class GetCodeService {
         codigo.validade = timeValidate;
 
         await this.codigoWpRepository.save(codigo)
-        this.enviarMensagem(getCodeDTO.tel, `Seu código de verificação é: ${code}`);
+        await this.enviarMensagem(getCodeDTO.tel, `Seu código de verificação é: ${code}`);
+      
         return { message: 'Código gerado e enviado via WhatsApp' };
     }
 
@@ -34,11 +35,10 @@ export class GetCodeService {
     private async enviarMensagem(numero, texto) {
         // Certifique-se de incluir o código do país e remover espaços ou caracteres especiais
         let numeroFormatado = numero.replace(/\D/g, "") + "@c.us";
-        axios.get(`https://emporio-wp.seu.dev.br/bot/enviar`, {
-            params: {
-                numero: numeroFormatado,
-                mensagem: texto
-            },
+        return axios.post(`https://emporio-wp.seu.dev.br/bot/enviar`, {
+            numero: numeroFormatado,
+            mensagem: texto
+        }, {
             headers: {
                 'Authorization': 'Bearer jfjj5448fgjJJjJjkUFrHJHBVCCfDGHjKklf54F4Ff4f4Ff6f97f6flJUGlGyf' // Token de autorização para evitar requisição maliciosa
             }
