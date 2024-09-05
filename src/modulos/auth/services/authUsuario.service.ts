@@ -12,7 +12,6 @@ export class AuthUsuarioService {
         @InjectRepository(UsuarioEntiy) private usuarioRepository: Repository<UsuarioEntiy>) { }
 
     async exec(authUsuarioDTO: AuthUsuarioDTO) {
-
         const payload = {
             sub: authUsuarioDTO.id,
             email: authUsuarioDTO.email,
@@ -20,13 +19,9 @@ export class AuthUsuarioService {
             tel: authUsuarioDTO.tel,
             isAdmin: authUsuarioDTO.isAdmin
         }
-
         const jwtToken = await this.jwtService.sign(payload)
         const usuario = await this.usuarioRepository.findOne({ where: { id: authUsuarioDTO.id } });
-
         await this.usuarioRepository.save(usuario)
-
         return { token: jwtToken }
-
     }
 }
