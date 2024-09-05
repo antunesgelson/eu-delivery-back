@@ -22,6 +22,7 @@ export class CategoriaController {
         return this.categoriaService.list();
     }
 
+    @IsPublic()
     @Get('lista/detalhes')
     async listDetails() {
         return this.categoriaService.listDetails();
