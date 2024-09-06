@@ -1,8 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CategoriaEntity } from "./categorias.entity";
 import { CategoriaDTO } from "./dto/categoria.dto";
+import { CategoriaEditarDTO } from "./dto/categoriaEditar.dto";
+import { NotFoundError } from "rxjs";
 
 @Injectable()
 export class CategoriaSerivice {
@@ -13,22 +15,30 @@ export class CategoriaSerivice {
 
     async create(categiria: CategoriaDTO) {
         const isValid = await this.categoriaRepository.findOne({ where: { titulo: categiria.titulo } });
-        if (isValid) return { mensagem: 'Categoria já existe.' };
-
+        if (isValid) throw new ConflictException('Categoria já cadastrada.')
         const categoria = await this.categoriaRepository.save(categiria);
-
-        return { mensagem: 'Categoria criada com sucesso.', categoria };
+        return categoria;
     }
 
-    async list() {
-        return await this.categoriaRepository.find({
-        });
+    async editar(categoriaEditarDTO:CategoriaEditarDTO){
+        const categoria = await this.categoriaRepository.findOne({where:{id:categoriaEditarDTO.id}});
+        if(!categoria) throw new NotFoundException('Categoria não encontrada.');
+        const categoriaDuplicada = await this.categoriaRepository.findOne({where:{titulo:categoriaEditarDTO.titulo}})
+        if(categoriaDuplicada && categoriaDuplicada.id != categoria.id) throw new ConflictException('Já possuí uma categoria com esse título.')
+        categoria.titulo = categoriaEditarDTO.titulo;
+        return this.categoriaRepository.save(categoria);
     }
+
+    async deletar(idDelete) { 
+        const categoria = await this.categoriaRepository.findOne({where:{id:idDelete}});
+        if(!categoria) throw new NotFoundException('Endereço não encontrado.');
+        return this.categoriaRepository.delete(idDelete);
+    }
+
+    async list() {return await this.categoriaRepository.find();}
 
     async listDetails() {
-        return await this.categoriaRepository.find({
-            relations: ['produtos'], // Carregar os produtos relacionados
-        });
+        return await this.categoriaRepository.find({relations: ['produtos'],});
     }
 
 }
