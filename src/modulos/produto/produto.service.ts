@@ -7,6 +7,9 @@ import { AddProductIngrentDTO } from "./dto/addProductIngredient.dto";
 import { ProdutoDTO } from './dto/produto.dto';
 import { ProdutosIngredientesEntity } from "./produtoIngrediente.entity";
 import { ProdutoEntity } from "./produtos.entity";
+import { S3Service } from "../s3/s3.service";
+
+
 
 @Injectable()
 export class ProdutoService {
@@ -19,13 +22,13 @@ export class ProdutoService {
         private produtoIngredienteRepository: Repository<ProdutosIngredientesEntity>,
         @InjectRepository(IngredientesEntity)
         private ingredienteRepository: Repository<IngredientesEntity>,
+        private s3Service:S3Service
     ) { }
 
 
     async create(produto: ProdutoDTO) { // Cria um novo produto
         const categoria = await this.categoriaRepository.findOne({ where: { id: produto.categoriaId }, });
-        if (!categoria) throw new Error('Categoria não encontrada');
-
+        if (!categoria) throw new NotFoundException('Categoria não encontrada');
         const produtoExistente = await this.produtoRepository.findOne({
             where: {
                 titulo: produto.titulo,
@@ -33,17 +36,18 @@ export class ProdutoService {
             },
             relations: ['categoria']
         });
-
         if (produtoExistente) {
             throw new ConflictException('Já existe um produto com esse título nesta categoria');
-        }
+        }  
+        produto.img = await this.s3Service.upload(produto.img,'eudelivery-produtos')
 
         // Criar e salvar o novo produto
-        const produtoEntity = this.produtoRepository.create(produto);
-        produtoEntity.categoria = categoria// Associando a categoria ao produto
-        await this.produtoRepository.save(produtoEntity);
+        let produtoEntity = new ProdutoEntity;
 
-        return { message: 'Produto cadastrado com sucesso', produto: produtoEntity };
+        Object.assign(produtoEntity,produto)
+         const produtoSaved = await this.produtoRepository.save(produtoEntity);
+         produtoSaved.categoria = produtoEntity.categoria = categoria
+         return await this.produtoRepository.save(produtoSaved);
     }
 
 
@@ -56,7 +60,7 @@ export class ProdutoService {
     async listById(produtoId: number) { // Lista um produto pelo ID
         const produto = await this.produtoRepository.findOne({
             where: { id: produtoId },
-            relations: ['ingredientes'], // Carregar as relações de ingredientes
+            relations: ['produtosIngredientes'], // Carregar as relações de ingredientes
         });
 
         if (!produto) {

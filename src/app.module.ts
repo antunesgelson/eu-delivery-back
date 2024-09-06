@@ -12,6 +12,7 @@ import { SharedModule } from './shared/shared.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modulos/auth/guards/jwt-auth.guard';
 import { EnderecoModule } from './modulos/endereco/endereco.module';
+import { s3Module } from './modulos/s3/s3.module';
 
 
 @Module({
@@ -23,6 +24,7 @@ import { EnderecoModule } from './modulos/endereco/endereco.module';
     IngredienteModule,
     AdicinaisModule,
     SharedModule,
+    s3Module,
     EnderecoModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(databaseConfig()),
