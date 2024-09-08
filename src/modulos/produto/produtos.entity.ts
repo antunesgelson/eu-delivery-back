@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, JoinTable, ManyToMany, ManyToOne, One
 import { CategoriaEntity } from "../categoria/categorias.entity";
 import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
 import { ProdutosIngredientesEntity } from "./produtoIngrediente.entity";
+
 @Entity('produtos')
 export class ProdutoEntity {
     @PrimaryGeneratedColumn()
@@ -19,8 +20,13 @@ export class ProdutoEntity {
     @Column()
     valor: string;
 
-    @Column()
-    img: string;
+    // Definindo o campo 'img' como JSON
+    @Column({type:"json"})
+    img: {
+        Bucket: string,
+        Body: Express.Multer.File,
+        Key: string
+      }; 
 
     @Column()
     desconto: number;
