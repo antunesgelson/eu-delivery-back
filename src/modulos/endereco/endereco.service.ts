@@ -21,6 +21,10 @@ export class EnderecoService {
         return this.enderecoRepository.save({...adicionarDTO,usuario:{id:adicionarDTO.usuarioId}});
     }
 
+    async buscarPorId(buscarPorIdDTO:{id:number,usuarioId:number}) { 
+        return this.enderecoRepository.find({where:{id:buscarPorIdDTO.id,usuario:{id:buscarPorIdDTO.usuarioId}}});
+    }
+
     async buscarTodosEnderecos(buscarTodosDTO) { 
         return this.enderecoRepository.find({where:{usuario:{id:buscarTodosDTO.usuarioId}}});
     }

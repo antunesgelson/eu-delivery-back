@@ -3,6 +3,8 @@ import { EnderecoService } from "./endereco.service";
 import { EnderecoAdicionarDTO } from "./dto/enderecoAdicionar.dto";
 import { EnderecoEditarDTO } from "./dto/enderecoEditar.dto";
 import { EnderecoDeletarDTO } from "./dto/enderecoDeletar.dto";
+import { IsIn } from "class-validator";
+import { EnderecoBuscarPorIdDTO } from "./dto/enderecoBuscarPorId.dto";
 
 @Controller('endereco')
 export class EnderecoController {
@@ -17,6 +19,12 @@ export class EnderecoController {
     @Get('todos')
     async buscarTodosEnderecos(@Req() request) {
         return this.enderecoService.buscarTodosEnderecos({usuarioId:request.user.sub});
+    }
+
+    @Get(':id')
+    async buscarPorIdEnderecos(@Param() endereco:EnderecoBuscarPorIdDTO, @Req() request) {
+        const buscaEndereco = {...endereco, usuarioId:request.user.sub}
+        return this.enderecoService.buscarPorId(buscaEndereco);
     }
 
     @Put()
