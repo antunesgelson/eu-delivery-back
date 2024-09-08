@@ -5,7 +5,4 @@ export class EnderecoBuscarPorIdDTO{
     @IsNumber()
     @Type(()=>Number)
     id:number
-
-    @IsOptional()
-    usuarioId:number
 }
