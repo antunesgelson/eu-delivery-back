@@ -23,6 +23,7 @@ export class ProdutoEntity {
     // Definindo o campo 'img' como JSON
     @Column({type:"json"})
     imgs: {
+        ETag:string,
         Bucket: string,
         Body: Express.Multer.File,
         Key: string

@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException, UnauthorizedException
 import { InjectRepository } from "@nestjs/typeorm";
 import { EnderecoEntity } from "./endereco.entity";
 import { Repository } from "typeorm";
+import { EnderecoEditarDTO } from "./dto/enderecoEditar.dto";
 
 @Injectable()
 export class EnderecoService {
@@ -29,7 +30,7 @@ export class EnderecoService {
         return this.enderecoRepository.find({where:{usuario:{id:buscarTodosDTO.usuarioId}}});
     }
 
-    async editar(editarDTO) { 
+    async editar(editarDTO:EnderecoEditarDTO & {usuarioId:number}) { 
         const endereco = await this.enderecoRepository.findOne({where:{id:editarDTO.id},relations:["usuario"]});
         if(endereco.usuario.id != editarDTO.usuarioId) throw new UnauthorizedException('Usuário não tem permissão para alterar esse endereço.')
         if(!endereco) throw new NotFoundException('Endereço não encontrado.');

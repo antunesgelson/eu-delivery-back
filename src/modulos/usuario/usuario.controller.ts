@@ -5,8 +5,7 @@ import { UsuarioService } from "./usuario.service";
 @Controller('usuario')
 export class UsuarioController {
     constructor(private usuarioService: UsuarioService,
-
-    ) { }
+    ) {}
 
     @Put()
     async editar(@Body() usuarioEditarDTO: UsuarioEditarDTO,@Req() request) {

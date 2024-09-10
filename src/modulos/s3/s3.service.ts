@@ -23,7 +23,8 @@ export class S3Service{
             Body: file.buffer,
             Key: `${Date.now()}-${file.originalname}`
           }).promise();
-      
+          
+          console.log(uploadResult);
           return uploadResult;
     }
 

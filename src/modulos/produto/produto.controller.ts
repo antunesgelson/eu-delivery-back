@@ -1,18 +1,20 @@
-import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Post, Req, UploadedFile, UploadedFiles, UseInterceptors } from "@nestjs/common";
+import {  Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req,  SetMetadata,  UploadedFiles, UseInterceptors } from "@nestjs/common";
 import { AddProductIngrentDTO } from "./dto/addProductIngredient.dto";
 import { ProdutoDTO } from "./dto/produto.dto";
 import { ProdutoService } from "./produto.service";
 import { IsPublic } from "../auth/decorators/isPublic.decorator";
-import { FileInterceptorToBodyInterceptor } from "src/shared/interceptor/fileInterceptorToBody.interceptor";
-import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
+import {  FilesInterceptor } from "@nestjs/platform-express";
+import { DeletarFotoProdutoDTO } from "./dto/deletarFotoProduto.dto";
+import { DeletarProdutoDTO } from "./dto/deletarProduto.dto";
 
 @Controller('produto')
 export class ProdutoController {
     constructor(
         private produtoService: ProdutoService,
-    ) { }
+    ) {}
 
     @Post('cadastrar')
+    @SetMetadata('isAdmin',true)
     @UseInterceptors(FilesInterceptor('imgs',10,{limits:{fileSize:5*1024*1024}}))  // Lida com o campo de arquivo 'img'
     async cadastrarProduto(
         @Body() produtoDto: ProdutoDTO,
@@ -36,7 +38,21 @@ export class ProdutoController {
     }
 
     @Post('adicionar-ingredientes')
+    @SetMetadata('isAdmin',true)
     async addProductIngredient(@Body() produto: AddProductIngrentDTO) {
         return this.produtoService.adicionarIngredientes(produto);
     }
+
+    @Delete(':produtoId')
+    @SetMetadata('isAdmin',true)
+    async deletarProduto(@Param() produtoDTO:DeletarProdutoDTO){
+        return this.produtoService.deletarProduto(produtoDTO);
+    }
+
+    @Delete('/:produtoId/:etag')
+    @SetMetadata('isAdmin',true)
+    async deletarFotoProduto(@Param() produtoDTO:DeletarFotoProdutoDTO){
+        return this.produtoService.deletarFotoProduto(produtoDTO);
+    }
+
 }

@@ -8,6 +8,7 @@ import { ProdutoDTO } from './dto/produto.dto';
 import { ProdutosIngredientesEntity } from "./produtoIngrediente.entity";
 import { ProdutoEntity } from "./produtos.entity";
 import { S3Service } from "../s3/s3.service";
+import { identity } from "rxjs";
 
 
 
@@ -26,19 +27,12 @@ export class ProdutoService {
     ) { }
 
     async adicionar(produto: ProdutoDTO & { usuarioId: number, files: Express.Multer.File[] }) { // Cria um novo produto
-        if (produto.files.length === 0) {
-            throw new BadRequestException('Arquivo de imagem é obrigatório.');
-        }
+        if (produto.files.length === 0) {throw new BadRequestException('Arquivo de imagem é obrigatório.')}
         const extensoesValidas = ['.jpg', '.png', '.gif', '.jpeg']; // Defina as extensões permitidas
         produto.files.map((foto) => {
             const isExtensaoValida = extensoesValidas.some(extensao => foto.originalname.toLowerCase().endsWith(extensao));
-            if (!isExtensaoValida) {
-                throw new BadRequestException('O arquivo deve ser uma imagem válida.');
-            }
-            if (!foto.mimetype.startsWith('image/')) {
-                console.log(foto.mimetype)
-                throw new BadRequestException('O arquivo deve ser uma imagem.')
-            }
+            if (!isExtensaoValida) {throw new BadRequestException('O arquivo deve ser uma imagem válida.')}
+            if (!foto.mimetype.startsWith('image/')) {throw new BadRequestException('O arquivo deve ser uma imagem.')}
         })
         const categoria = await this.categoriaRepository.findOne({ where: { id: produto.categoriaId }, });
         if (!categoria) throw new NotFoundException('Categoria não encontrada');
@@ -49,9 +43,7 @@ export class ProdutoService {
             },
             relations: ['categoria']
         });
-        if (produtoExistente) {
-            throw new ConflictException('Já existe um produto com esse título nesta categoria');
-        }
+        if (produtoExistente) {throw new ConflictException('Já existe um produto com esse título nesta categoria')}
         let produtoEntity = new ProdutoEntity;
         const imagensUpload = await Promise.all(produto.files.map(async (foto) => {
             const uploadResult = await this.s3Service.upload(foto, 'eudelivery-produtos');
@@ -62,7 +54,6 @@ export class ProdutoService {
         // Preenche o array imgs com os resultados dos uploads
         produtoEntity.imgs.push(...imagensUpload);
         Object.assign(produtoEntity, produto)
-        console.log(produtoEntity);
         const produtoSaved = await this.produtoRepository.save(produtoEntity);
         produtoSaved.categoria = produtoEntity.categoria = categoria
         await this.produtoRepository.save(produtoSaved);
@@ -79,25 +70,35 @@ export class ProdutoService {
     }
 
     async buscarPorCategoria(categoria: string) { // Lista um produto pelo ID
-        if (!categoria || categoria == "") {
-            throw new BadRequestException("Categoria não pode ser vazio.")
-        }
-        const produto = await this.produtoRepository.find({
-            where: { categoria: { titulo: categoria } },
-        });
+        if (!categoria || categoria == "") { throw new BadRequestException("Categoria não pode ser vazio.") }
+        const produto = await this.produtoRepository.find({ where: { categoria: { titulo: categoria } } });
         if (!produto) { throw new NotFoundException(`Produto com a categoria ${categoria} não encontrado.`); }
         return produto;
     }
 
+    async deletarProduto(data: { produtoId: number }) {
+        const produto = await this.produtoRepository.findOne({ where: { id: data.produtoId } });
+        if (!produto) throw new NotFoundException('Produto não encontrado.')
+        await Promise.all(produto.imgs.map(async (img) => { await this.s3Service.delete(img.Key, img.Bucket); }));
+        return this.produtoRepository.delete(data.produtoId);
+    }
+
+
+    async deletarFotoProduto(data: { produtoId:number,etag: string }) {
+        const produto = await this.produtoRepository.findOne({ where: { id: data.produtoId } });
+        if (!produto) throw new NotFoundException('Produto não encontrado.')
+        const imgDelete = produto.imgs.find((item)=>{return item.ETag == data.etag});
+        const imagensFiltradas = produto.imgs.filter((item)=>{return item.ETag != data.etag});
+        await this.s3Service.delete(imgDelete.Key,imgDelete.Bucket);
+        produto.imgs = imagensFiltradas;
+        return await this.produtoIngredienteRepository.save(produto)
+    }
+
+
     async adicionarIngredientes(produto: AddProductIngrentDTO) { // Adiciona um ingrediente a um produto
-        const produtoEntity = await this.produtoRepository.findOne({
-            where: { id: produto.produtoId },
-            // relations: ['produtosIngredientes'], // Carregar as relações de ingredientes
-        });
+        const produtoEntity = await this.produtoRepository.findOne({where: { id: produto.produtoId },});
         if (!produtoEntity) throw new NotFoundException(`Produto com ID ${produto.produtoId} não encontrado.`);
-        const ingredienteEntity = await this.ingredienteRepository.findOne({
-            where: { id: produto.ingredienteId },
-        });
+        const ingredienteEntity = await this.ingredienteRepository.findOne({where: { id: produto.ingredienteId }});
         if (!ingredienteEntity) throw new NotFoundException(`Ingrediente com ID ${produto.ingredienteId} não encontrado.`);
         const IsInvalid = await this.produtoIngredienteRepository.findOne({ where: { produto: { id: produtoEntity.id }, ingrediente: { id: ingredienteEntity.id } } });
         if (IsInvalid) throw new ConflictException('Ingrediente já cadastrado.');

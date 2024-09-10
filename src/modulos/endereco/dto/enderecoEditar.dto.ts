@@ -1,10 +1,7 @@
 import { IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
 
 export class EnderecoEditarDTO{
-    @IsOptional()
-    @IsNumber()
-    usuarioId:number
-
+  
     @IsNumber()
     id:number
 
