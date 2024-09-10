@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from 'typeorm';
 import { CategoriaEntity } from '../categoria/categorias.entity';
@@ -22,11 +22,24 @@ export class ProdutoService {
         private produtoIngredienteRepository: Repository<ProdutosIngredientesEntity>,
         @InjectRepository(IngredientesEntity)
         private ingredienteRepository: Repository<IngredientesEntity>,
-        private s3Service:S3Service
+        private s3Service: S3Service
     ) { }
 
-
-    async create(produto: ProdutoDTO) { // Cria um novo produto
+    async adicionar(produto: ProdutoDTO & { usuarioId: number, files: Express.Multer.File[] }) { // Cria um novo produto
+        if (produto.files.length === 0) {
+            throw new BadRequestException('Arquivo de imagem é obrigatório.');
+        }
+        const extensoesValidas = ['.jpg', '.png', '.gif', '.jpeg']; // Defina as extensões permitidas
+        produto.files.map((foto) => {
+            const isExtensaoValida = extensoesValidas.some(extensao => foto.originalname.toLowerCase().endsWith(extensao));
+            if (!isExtensaoValida) {
+                throw new BadRequestException('O arquivo deve ser uma imagem válida.');
+            }
+            if (!foto.mimetype.startsWith('image/')) {
+                console.log(foto.mimetype)
+                throw new BadRequestException('O arquivo deve ser uma imagem.')
+            }
+        })
         const categoria = await this.categoriaRepository.findOne({ where: { id: produto.categoriaId }, });
         if (!categoria) throw new NotFoundException('Categoria não encontrada');
         const produtoExistente = await this.produtoRepository.findOne({
@@ -38,62 +51,72 @@ export class ProdutoService {
         });
         if (produtoExistente) {
             throw new ConflictException('Já existe um produto com esse título nesta categoria');
-        }  
-        produto.img = await this.s3Service.upload(produto.img,'eudelivery-produtos')
-
-        // Criar e salvar o novo produto
+        }
         let produtoEntity = new ProdutoEntity;
-
-        Object.assign(produtoEntity,produto)
-         const produtoSaved = await this.produtoRepository.save(produtoEntity);
-         produtoSaved.categoria = produtoEntity.categoria = categoria
-         return await this.produtoRepository.save(produtoSaved);
+        const imagensUpload = await Promise.all(produto.files.map(async (foto) => {
+            const uploadResult = await this.s3Service.upload(foto, 'eudelivery-produtos');
+            // Remover as aspas duplas ao redor do ETag usando regex
+            uploadResult.ETag = uploadResult.ETag.replace(/"/g, '');
+            return uploadResult;
+        }));
+        // Preenche o array imgs com os resultados dos uploads
+        produtoEntity.imgs.push(...imagensUpload);
+        Object.assign(produtoEntity, produto)
+        console.log(produtoEntity);
+        const produtoSaved = await this.produtoRepository.save(produtoEntity);
+        produtoSaved.categoria = produtoEntity.categoria = categoria
+        await this.produtoRepository.save(produtoSaved);
+        return this.produtoRepository.findOne({ where: { id: produtoSaved.id } })
     }
 
-
-
-
-
-
-
-
-    async listById(produtoId: number) { // Lista um produto pelo ID
+    async buscarPorId(produtoId: number) { // Lista um produto pelo ID
         const produto = await this.produtoRepository.findOne({
             where: { id: produtoId },
             relations: ['produtosIngredientes'], // Carregar as relações de ingredientes
         });
-
-        if (!produto) {
-            throw new NotFoundException(`Produto com ID ${produtoId} não encontrado.`);
-        }
-
+        if (!produto) { throw new NotFoundException(`Produto com ID ${produtoId} não encontrado.`); }
         return produto;
     }
 
+    async buscarPorCategoria(categoria: string) { // Lista um produto pelo ID
+        if (!categoria || categoria == "") {
+            throw new BadRequestException("Categoria não pode ser vazio.")
+        }
+        const produto = await this.produtoRepository.find({
+            where: { categoria: { titulo: categoria } },
+        });
+        if (!produto) { throw new NotFoundException(`Produto com a categoria ${categoria} não encontrado.`); }
+        return produto;
+    }
 
-
-
-
-
-    async addIngredient(produto: AddProductIngrentDTO) { // Adiciona um ingrediente a um produto
+    async adicionarIngredientes(produto: AddProductIngrentDTO) { // Adiciona um ingrediente a um produto
         const produtoEntity = await this.produtoRepository.findOne({
             where: { id: produto.produtoId },
             // relations: ['produtosIngredientes'], // Carregar as relações de ingredientes
         });
-
         if (!produtoEntity) throw new NotFoundException(`Produto com ID ${produto.produtoId} não encontrado.`);
-
         const ingredienteEntity = await this.ingredienteRepository.findOne({
             where: { id: produto.ingredienteId },
         });
-
         if (!ingredienteEntity) throw new NotFoundException(`Ingrediente com ID ${produto.ingredienteId} não encontrado.`);
-
         const IsInvalid = await this.produtoIngredienteRepository.findOne({ where: { produto: { id: produtoEntity.id }, ingrediente: { id: ingredienteEntity.id } } });
         if (IsInvalid) throw new ConflictException('Ingrediente já cadastrado.');
-
         await this.produtoIngredienteRepository.save({ id: null, produto: produtoEntity, ingrediente: ingredienteEntity, quantia: produto.quantia, removivel: produto.removivel });
-        return { message: 'Ingrediente adicionado ao produto com sucesso.', produto: produtoEntity };
+        const produtoResult = await this.produtoRepository.findOne({
+            where: { id: produto.produtoId },
+            relations: ['produtosIngredientes', 'produtosIngredientes.ingrediente'], // Carregar as relações de ingredientes
+        });
+        const produtoFormatado = {
+            ...produtoResult,
+            produtosIngredientes: produtoResult.produtosIngredientes.map(pi => ({
+                id: pi.id,
+                quantia: pi.quantia,
+                removivel: pi.removivel,
+                nomeIngrediente: pi.ingrediente.nome, // Pega o nome do ingrediente diretamente
+                valorIngrediente: pi.ingrediente.valor // Pega o valor do ingrediente diretamente
+            }))
+        };
+        return produtoFormatado;
     }
 
 }

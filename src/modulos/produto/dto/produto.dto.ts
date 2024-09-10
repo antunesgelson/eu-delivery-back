@@ -30,6 +30,6 @@ export class ProdutoDTO {
     categoriaId: number;
 
     @IsOptional()
-    img:any
+    imgs:Express.Multer.File[]
 
 }

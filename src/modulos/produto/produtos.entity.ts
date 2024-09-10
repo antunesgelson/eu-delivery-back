@@ -22,11 +22,11 @@ export class ProdutoEntity {
 
     // Definindo o campo 'img' como JSON
     @Column({type:"json"})
-    img: {
+    imgs: {
         Bucket: string,
         Body: Express.Multer.File,
         Key: string
-      }; 
+      }[]=[]; 
 
     @Column()
     desconto: number;

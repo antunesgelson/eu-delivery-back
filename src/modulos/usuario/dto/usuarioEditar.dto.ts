@@ -4,10 +4,6 @@ import { IsDate, IsDateString, IsNumber, isNumber, IsOptional, isPort, IsString 
 export class UsuarioEditarDTO{
 
     @IsOptional()
-    @IsNumber()
-    id:number
-
-    @IsOptional()
     @IsString()
     nome:string
 

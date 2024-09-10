@@ -1,21 +1,21 @@
 import { Body, Controller, Get, Put, Req } from "@nestjs/common";
 import { UsuarioEditarDTO } from "./dto/usuarioEditar.dto";
-import { UsuarioEditarService } from "./services/UsuarioEditar.service";
-import { BuscarUsuarioService } from "./services/buscarUsuario.service";
+import { UsuarioService } from "./usuario.service";
 
 @Controller('usuario')
 export class UsuarioController {
-    constructor(private usuarioEditarService: UsuarioEditarService,
-        private usuarioBuscarService: BuscarUsuarioService
+    constructor(private usuarioService: UsuarioService,
+
     ) { }
 
     @Put()
-    async editar(@Body() usuarioEditarDTO: UsuarioEditarDTO) {
-        return this.usuarioEditarService.exec(usuarioEditarDTO);
+    async editar(@Body() usuarioEditarDTO: UsuarioEditarDTO,@Req() request) {
+        const usuario = {...usuarioEditarDTO, id:request.user.sub}
+        return this.usuarioService.editar(usuario);
     }
 
     @Get()
     async buscar(@Req() request) {
-        return this.usuarioBuscarService.exec({ usuarioId: request.user.sub });
+        return this.usuarioService.buscar({ usuarioId: request.user.sub });
     }
 }

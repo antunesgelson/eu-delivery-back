@@ -2,11 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CodigoWpEntity } from '../codigos_wp.entity';
-
-import { AdicionarUsuarioService } from 'src/modulos/usuario/services/adicionarUsuario.service';
-import { error } from 'console';
 import { AuthUsuarioService } from './authUsuario.service';
 import { UsuarioEntiy } from 'src/modulos/usuario/usuarios.entity';
+import { UsuarioService } from 'src/modulos/usuario/usuario.service';
 
 @Injectable()
 export class VerifyCodeService {
@@ -14,7 +12,7 @@ export class VerifyCodeService {
     private codigoWpRepository: Repository<CodigoWpEntity>,
         @InjectRepository(UsuarioEntiy)
         private usuarioRepository: Repository<UsuarioEntiy>,
-        private adicionarUsuarioService: AdicionarUsuarioService,
+        private usuarioService: UsuarioService,
         private authUsuarioService: AuthUsuarioService,
     ) { }
 
@@ -27,7 +25,7 @@ export class VerifyCodeService {
         if (numericCode !== codigo.codigo) throw new Error('Código inválido.')
         const usuarioExiste = await this.usuarioRepository.findOne({ where: { tel: codigo.telefone } });
         if (!usuarioExiste) {
-            const usuario = await this.adicionarUsuarioService.exec({ tel: codigo.telefone, email: '', token: process.env.TOKEN_SECRET });
+            const usuario = await this.usuarioService.adicionar({ tel: codigo.telefone, email: '', token: process.env.TOKEN_SECRET });
             codigo.isValid = true;
             await this.codigoWpRepository.save(codigo)
             return this.authUsuarioService.exec(usuario);
