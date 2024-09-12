@@ -1,11 +1,12 @@
-import {  Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req,  SetMetadata,  UploadedFiles, UseInterceptors } from "@nestjs/common";
+import {  Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req,  SetMetadata,  UploadedFile,  UploadedFiles, UseInterceptors } from "@nestjs/common";
 import { AddProductIngrentDTO } from "./dto/addProductIngredient.dto";
 import { ProdutoDTO } from "./dto/produto.dto";
 import { ProdutoService } from "./produto.service";
 import { IsPublic } from "../auth/decorators/isPublic.decorator";
-import {  FilesInterceptor } from "@nestjs/platform-express";
+import {  FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { DeletarFotoProdutoDTO } from "./dto/deletarFotoProduto.dto";
 import { DeletarProdutoDTO } from "./dto/deletarProduto.dto";
+import { AddFotoProdutoDTO } from "./dto/AddFotoProduto.dto";
 
 @Controller('produto')
 export class ProdutoController {
@@ -19,10 +20,21 @@ export class ProdutoController {
     async cadastrarProduto(
         @Body() produtoDto: ProdutoDTO,
         @UploadedFiles() files: Express.Multer.File[],
-        @Req() req  // Se você precisar de acesso ao token JWT
     ) {
-        const produtos = {usuarioId:req.user.sub,...produtoDto,files:files}
+        const produtos = {...produtoDto,files:files}
         return this.produtoService.adicionar(produtos);
+    }
+
+    @Post('/foto/:produtoId')
+    @SetMetadata('isAdmin',true)
+    @UseInterceptors(FileInterceptor('img',{limits:{fileSize:5*1024*1024}}))  // Lida com o campo de arquivo 'img'
+    async cadastrarFotoProduto(
+        @Param() fotoDTO: AddFotoProdutoDTO,
+        @UploadedFile() file: Express.Multer.File,
+    ) {
+        const foto = {...fotoDTO,file:file}
+        console.log(foto);
+        return this.produtoService.adicionarFoto(foto);
     }
 
     @IsPublic()
