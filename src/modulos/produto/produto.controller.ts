@@ -33,7 +33,6 @@ export class ProdutoController {
         @UploadedFile() file: Express.Multer.File,
     ) {
         const foto = {...fotoDTO,file:file}
-        console.log(foto);
         return this.produtoService.adicionarFoto(foto);
     }
 
