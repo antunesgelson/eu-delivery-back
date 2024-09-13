@@ -10,7 +10,7 @@ export class IngredientesEntity {
     nome: string;
 
     @Column()
-    valor: string;
+    valor: number;
 
     @OneToMany(() => ProdutosIngredientesEntity, (produtosIngredientes) => produtosIngredientes.ingrediente)
     produtosIngredientes: ProdutosIngredientesEntity[];
