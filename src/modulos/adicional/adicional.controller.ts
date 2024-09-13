@@ -1,12 +1,13 @@
 import { Body, Controller, Post } from "@nestjs/common";
-import { AdicionalDTO } from "./dto/adicional.dto";
+import { AdicionarAdicionalDTO } from "./dto/adicionarAdicional.dto";
+
 
 @Controller('adicional')
 export class AdicionaisController {
     constructor() { }
 
-    @Post('cadastrar')
-    async createAdicionais(@Body() adicionais: AdicionalDTO) {
+    @Post()
+    async adicionar(@Body() adicionais: AdicionarAdicionalDTO) {
         return ""
     }
 }

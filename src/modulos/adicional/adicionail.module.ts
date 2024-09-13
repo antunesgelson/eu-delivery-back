@@ -6,8 +6,7 @@ import { AdicionaisController } from './adicional.controller';
 @Module({
     imports: [TypeOrmModule.forFeature([ProdutoEntity])],
     controllers: [AdicionaisController],
-    providers: [
-    ]
+    providers: [ ]
 })
 export class AdicinaisModule {
 

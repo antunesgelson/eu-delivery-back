@@ -8,8 +8,9 @@ import { ProdutoDTO } from './dto/produto.dto';
 import { ProdutosIngredientesEntity } from "./produtoIngrediente.entity";
 import { ProdutoEntity } from "./produtos.entity";
 import { S3Service } from "../s3/s3.service";
-import { identity } from "rxjs";
 import { AddFotoProdutoDTO } from "./dto/AddFotoProduto.dto";
+import { AddAdicionalProdutoDTO } from "./dto/addAdicionalProduto.dto";
+import { DeletarAdicionalProdutoDTO } from "./dto/deletarAdicionalProduto.dto";
 
 
 
@@ -61,6 +62,27 @@ export class ProdutoService {
         return this.produtoRepository.findOne({ where: { id: produtoSaved.id } })
     }
 
+    async adicionarAdicional(adicionarAdicional: AddAdicionalProdutoDTO) {
+        const produto = await this.produtoRepository.findOne({ where: { id: adicionarAdicional.produtoId }, relations: ['adicionais'] })
+        if (!produto) throw new NotFoundException('Produto não encontrado.');
+        const isExist = produto.adicionais.some((item) => { return item.id == adicionarAdicional.ingredienteId });
+        if (isExist) throw new ConflictException('Adicional já cadastrado nesse produto.');
+        const ingrediente = await this.ingredienteRepository.findOne({ where: { id: adicionarAdicional.ingredienteId } });
+        if (!ingrediente) throw new NotFoundException('Ingrediente não cadastrado.')
+        produto.adicionais.push(ingrediente)
+        return this.produtoRepository.save(produto);
+    }
+
+    async deletarAdicional(produtoDTO: DeletarAdicionalProdutoDTO) {
+        const produto = await this.produtoRepository.findOne({ where: { id: produtoDTO.produtoId }, relations: ['adicionais'] })
+        if (!produto) throw new NotFoundException('Produto não encontrado.');
+        const isExist = produto.adicionais.some((item) => { return item.id == produtoDTO.ingredienteId });
+        if (!isExist) throw new ConflictException('Adicional não está cadastrado nesse produto.');
+        const adicionais = produto.adicionais.filter((item)=>{return item.id != produtoDTO.ingredienteId})
+        produto.adicionais = adicionais
+        return this.produtoRepository.save(produto);
+    }
+
     async adicionarFoto(foto: AddFotoProdutoDTO & { file: Express.Multer.File }) { // Cria um novo produto
         const produto = await this.produtoRepository.findOne({ where: { id: foto.produtoId } });
         if (!produto) throw new NotFoundException('Produto não encontrado.');
@@ -106,7 +128,6 @@ export class ProdutoService {
         const imagensFiltradas = produto.imgs.filter((item) => { return item.ETag != data.etag });
         await this.s3Service.delete(imgDelete.Key, imgDelete.Bucket);
         produto.imgs = imagensFiltradas;
-        console.log(produto.imgs);
         return await this.produtoRepository.save(produto)
     }
 

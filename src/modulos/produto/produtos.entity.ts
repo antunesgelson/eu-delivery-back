@@ -41,7 +41,7 @@ export class ProdutoEntity {
     @OneToMany(() => ProdutosIngredientesEntity, (produtosIngredientes) => produtosIngredientes.produto)
     produtosIngredientes: ProdutosIngredientesEntity[];
 
-    @ManyToMany(() => IngredientesEntity)
+    @ManyToMany(() => IngredientesEntity, { cascade: ['insert', 'update'] })
     @JoinTable()
     adicionais: IngredientesEntity[];
 

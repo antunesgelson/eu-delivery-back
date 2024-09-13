@@ -7,6 +7,9 @@ import {  FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { DeletarFotoProdutoDTO } from "./dto/deletarFotoProduto.dto";
 import { DeletarProdutoDTO } from "./dto/deletarProduto.dto";
 import { AddFotoProdutoDTO } from "./dto/AddFotoProduto.dto";
+import { AddAdicionalProdutoDTO } from "./dto/addAdicionalProduto.dto";
+import { DeletarAdicionalProdutoDTO } from "./dto/deletarAdicionalProduto.dto";
+
 
 @Controller('produto')
 export class ProdutoController {
@@ -23,6 +26,18 @@ export class ProdutoController {
     ) {
         const produtos = {...produtoDto,files:files}
         return this.produtoService.adicionar(produtos);
+    }
+
+    @Post('adicional')
+    @SetMetadata('isAdmin',true)
+    async adicionarAdicional(@Body() addAdicionarProdutoDTO:AddAdicionalProdutoDTO){
+        return this.produtoService.adicionarAdicional(addAdicionarProdutoDTO);
+    }
+
+    @Delete('adicional')
+    @SetMetadata('isAdmin',true)
+    async deletarAdicional(@Body() produtoDTO:DeletarAdicionalProdutoDTO){
+        return this.produtoService.deletarAdicional(produtoDTO)
     }
 
     @Post('/foto/:produtoId')
