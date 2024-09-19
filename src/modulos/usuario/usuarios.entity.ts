@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { EnderecoEntity } from "../endereco/endereco.entity";
+import { PedidoEntity } from "../pedido/pedido.entity";
 
 @Entity('usuarios')
 export class UsuarioEntiy {
@@ -26,6 +27,9 @@ export class UsuarioEntiy {
 
     @OneToMany(() => EnderecoEntity, (endereco) => endereco.usuario)
     enderecos: EnderecoEntity[];
+
+    @OneToMany(()=>PedidoEntity,(pedidos)=>pedidos.cliente)
+    pedidos:PedidoEntity[]
 
     @CreateDateColumn()
     created_at?: Date;
