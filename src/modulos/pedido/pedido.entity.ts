@@ -26,7 +26,7 @@ interface enderecoPedido {
 @Entity('pedidos')
 export class PedidoEntity {
     @PrimaryGeneratedColumn()
-    id: string
+    id: number
 
     @ManyToOne(() => UsuarioEntiy, (cliente) => cliente.pedidos)
     cliente: UsuarioEntiy
@@ -36,10 +36,10 @@ export class PedidoEntity {
 
     //cupom //cupom utilizado
 
-    @Column({type:'float'})
+    @Column({type:'float', default:0})
     cashBack:number
 
-    @Column({ type: "timestamp" })
+    @Column({ type: "timestamp",nullable: true })
     dataEntrega: Date
 
     @Column({ type: "enum", enum: StatusPedidoEnum, default: StatusPedidoEnum.AGUARDANDO_PAGAMENTO })

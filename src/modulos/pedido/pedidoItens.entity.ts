@@ -16,7 +16,7 @@ interface Adicional{
 @Entity('pedidos_itens')
 export class PedidoItensEntity {
     @PrimaryGeneratedColumn()
-    id: string;
+    id: number;
 
     @ManyToOne(() => PedidoEntity, (pedido) => pedido.itens)
     pedido: PedidoEntity;
@@ -32,6 +32,9 @@ export class PedidoItensEntity {
 
     @Column({ type: 'float', default: 0 })
     valorAdicionais: number;
+
+    @Column({ type: 'int', default: 1 })
+    quantidade: number;
 
     @Column({ type: 'text', default: '' })
     obs: string;

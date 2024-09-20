@@ -5,9 +5,10 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { PedidoEntity } from "./pedido.entity";
 import { ProdutoEntity } from "../produto/produtos.entity";
 import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
+import { PedidoItensEntity } from "./pedidoItens.entity";
 
 @Module({
-    imports:[TypeOrmModule.forFeature([PedidoEntity,ProdutoEntity,IngredientesEntity])],
+    imports:[TypeOrmModule.forFeature([PedidoEntity,ProdutoEntity,IngredientesEntity,PedidoItensEntity])],
     controllers:[PedidoController],
     providers:[PedidoService]
 })
