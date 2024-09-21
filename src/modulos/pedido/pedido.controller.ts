@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Put, Req } from "@nestjs/common";
 import { PedidoService } from "./pedido.service";
+import { AdicionarItemAoCarrinhoDTO } from "./dto/adicionarItemAoCarrinho.dto";
 
 @Controller('pedido')
 export class PedidoController {
@@ -7,8 +8,8 @@ export class PedidoController {
     constructor(private pedidoService: PedidoService) { }
 
     @Post('/carrinho')
-    async adicionarItemAoCarrinho(@Body() pedidoDTO, @Req() request) {
-        const pedido = {...pedidoDTO, usuarioId:request.user.sub}
+    async adicionarItemAoCarrinho(@Body() pedidoDTO:AdicionarItemAoCarrinhoDTO, @Req() request) {
+        const pedido = {...pedidoDTO, clienteId:request.user.sub}
         return this.pedidoService.adicionarItemAoCarrinho(pedido)
     }
 

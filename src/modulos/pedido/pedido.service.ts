@@ -6,6 +6,8 @@ import { ProdutoEntity } from "../produto/produtos.entity";
 import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
 import { PedidoItensEntity } from "./pedidoItens.entity";
 
+import { AdicionarItemAoCarrinhoDTO } from "./dto/adicionarItemAoCarrinho.dto";
+
 @Injectable()
 export class PedidoService {
 
@@ -17,7 +19,7 @@ export class PedidoService {
 
     ) {}
 
-    async adicionarItemAoCarrinho(pedido) {
+    async adicionarItemAoCarrinho(pedido:AdicionarItemAoCarrinhoDTO & {clienteId:any}) {
         // buscar pedido que está com statos "no carrinho" do usuário atual
         let pedido_atual = await this.pedidoRepository.findOne({ where: { cliente: { id: pedido.clienteId }, status: StatusPedidoEnum.NO_CARRINHO } });
         if (!pedido_atual) pedido_atual = new PedidoEntity();
@@ -39,25 +41,25 @@ export class PedidoService {
             if (!isExisteAdicional) throw new ConflictException('Adicional não cadastrado para esse produto.')
         })
         //converte o array de numero em array de adicionais, mesma coisa para os ingredientes...
-        pedido.adicionais = produto.adicionais.filter((itemProduto) => { return pedido.adicionais.some((itemPedido) => { return itemPedido == itemProduto.id }) })
-        pedido.ingredientes = await this.ingredienteRepository.find({ where: { id: In(pedido.ingredientes) } })
-        pedido.valor = produto.valor; // adiciona o valor do produto no pedido no momento da compra
-        pedido.valorAdicionais = pedido.adicionais.reduce((total, item) => { return total + item.valor }, 0) // calcula o valor total dos adicionais
+        const pedido_adicionais = produto.adicionais.filter((itemProduto) => { return pedido.adicionais.some((itemPedido) => { return itemPedido == itemProduto.id }) })
+        const pedido_ingredientes = await this.ingredienteRepository.find({ where: { id: In(pedido.ingredientes) } })
+        const pedido_valor = produto.valor; // adiciona o valor do produto no pedido no momento da compra
+        const pedido_valorAdicionais = pedido_adicionais.reduce((total, item) => { return total + item.valor }, 0) // calcula o valor total dos adicionais
         //preenche os dados do pedido atual
         pedido_atual.obs = '';
-        pedido_atual.cliente = pedido.usuarioId;
+        pedido_atual.cliente = pedido.clienteId;
         pedido_atual.status = StatusPedidoEnum.NO_CARRINHO
         pedido_atual = await this.pedidoRepository.save(pedido_atual);
         //adicionar o item no pedido..
         const item_pedido_atual = {
             id:null,
-            valor:pedido.valor,
+            valor:pedido_valor,
             obs:pedido.obs,
             pedido:pedido_atual,
-            valorAdicionais:pedido.valorAdicionais,
+            valorAdicionais:pedido_valorAdicionais,
             quantidade:pedido.quantidade,
-            ingredientes:pedido.ingredientes,
-            adicionais:pedido.adicionais,
+            ingredientes:pedido_ingredientes,
+            adicionais:pedido_adicionais,
         }
         const itemPedido = await this.pedidoItensRepository.save(item_pedido_atual)
         return itemPedido;

@@ -17,8 +17,8 @@ export class ProdutoEntity {
     @Column()
     descricao: string;
 
-    @Column()
-    valor: string;
+    @Column({type:"float"})
+    valor: number;
 
     // Definindo o campo 'img' como JSON
     @Column({type:"json"})
