@@ -1,5 +1,6 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { PedidoEntity } from "./pedido.entity";
+import { ProdutoEntity } from "../produto/produtos.entity";
 
 
 interface Ingrediente{
@@ -38,6 +39,9 @@ export class PedidoItensEntity {
 
     @Column({ type: 'text', default: '' })
     obs: string;
+
+    @ManyToOne(() => ProdutoEntity,(produto)=>null)
+    produto:ProdutoEntity
 
     @UpdateDateColumn()
     updated_at: Date;

@@ -12,7 +12,7 @@ export enum StatusPedidoEnum {
     NO_CARRINHO = "no carrinho"
 }
 
-interface enderecoPedido {
+export interface enderecoPedido {
     favorite: boolean;
     apelido: string;
     rua: string;

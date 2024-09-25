@@ -13,8 +13,11 @@ export class PedidoController {
         return this.pedidoService.adicionarItemAoCarrinho(pedido)
     }
 
+    //lista todos itens que estão no carrinho.
     @Get('/carrinho')
-    async itensDoCarrinho() { }
+    async itensDoCarrinho(@Req() request){
+        return this.pedidoService.itensDoCarrinho({usuarioId:request.user.sub})
+    }
 
     @Put('/carrinho')
     async editarQuantidadeDeItensNoCarrinho() { }

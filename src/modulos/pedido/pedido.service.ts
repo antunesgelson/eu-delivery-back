@@ -17,9 +17,9 @@ export class PedidoService {
         @InjectRepository(IngredientesEntity) private ingredienteRepository: Repository<IngredientesEntity>,
         @InjectRepository(PedidoItensEntity) private pedidoItensRepository: Repository<PedidoItensEntity>
 
-    ) {}
+    ) { }
 
-    async adicionarItemAoCarrinho(pedido:AdicionarItemAoCarrinhoDTO & {clienteId:any}) {
+    async adicionarItemAoCarrinho(pedido: AdicionarItemAoCarrinhoDTO & { clienteId: any }) {
         // buscar pedido que está com statos "no carrinho" do usuário atual
         let pedido_atual = await this.pedidoRepository.findOne({ where: { cliente: { id: pedido.clienteId }, status: StatusPedidoEnum.NO_CARRINHO } });
         if (!pedido_atual) pedido_atual = new PedidoEntity();
@@ -52,16 +52,23 @@ export class PedidoService {
         pedido_atual = await this.pedidoRepository.save(pedido_atual);
         //adicionar o item no pedido..
         const item_pedido_atual = {
-            id:null,
-            valor:pedido_valor,
-            obs:pedido.obs,
-            pedido:pedido_atual,
-            valorAdicionais:pedido_valorAdicionais,
-            quantidade:pedido.quantidade,
-            ingredientes:pedido_ingredientes,
-            adicionais:pedido_adicionais,
+            id: null,
+            valor: pedido_valor,
+            obs: pedido.obs,
+            pedido: pedido_atual,
+            valorAdicionais: pedido_valorAdicionais,
+            quantidade: pedido.quantidade,
+            ingredientes: pedido_ingredientes,
+            adicionais: pedido_adicionais,
+            produto: produto
         }
         const itemPedido = await this.pedidoItensRepository.save(item_pedido_atual)
         return itemPedido;
+    }
+
+    async itensDoCarrinho(itensDoCarrinhoDTO: { usuarioId: number }) {
+        const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: itensDoCarrinhoDTO.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO }, relations: ["itens"] })
+        const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + item.valor + item.valorAdicionais }, 0)
+        return {...pedido_carrinho,valorTotalPedido: pedido_valorTotal};
     }
 }
