@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4050:5000"
+    environment:
+      - MYSQL_USER=remoto
+      - MYSQL_DB=eu-delivery
+      - MYSQL_HOST=100.123.212.91
+      - MYSQL_PORT=3306
+      - MYSQL_PASSWORD=apgyysmr
+      - S3_ACCESSKEYID=7VaSWc53KHenhpp9buei
+      - S3_SECRET=IM4q2ENtpbyj1pV60xossOZzseoQdzOgnRmFC47i
+      - S3_ENDPOINT=https://s3.seu.dev.br/
+      - JWT_SECRET=apgyysmr
+      - PREFIX_DB=
+      - PORT_SERVER_WEB=5000
+      - TOKEN_SECRET="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"
