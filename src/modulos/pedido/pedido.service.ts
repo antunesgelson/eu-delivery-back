@@ -71,4 +71,23 @@ export class PedidoService {
         const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + item.valor + item.valorAdicionais }, 0)
         return {...pedido_carrinho,valorTotalPedido: pedido_valorTotal};
     }
+
+    
+
+    async editarQuantidadeDeItensNoCarrinho(item){
+        //validar numero negativo
+        const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: item.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO }, relations: ["itens"] })
+        const itemPedido = pedido_carrinho.itens.find((itemFind)=>{return itemFind.id == item.pedidoItemId})
+        if(!itemPedido) throw new NotFoundException('Item não encontrado.');
+
+        itemPedido.quantidade = item.quantidade; 
+        return this.pedidoItensRepository.save(itemPedido);
+    }
+
+    async removerItemDoCarrinho(item){
+        const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: item.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO }, relations: ["itens"] })
+        const itemPedido = pedido_carrinho.itens.find((itemFind)=>{return itemFind.id == item.pedidoItemId})
+        if(!itemPedido) throw new NotFoundException('Item não encontrado.');
+        return this.pedidoItensRepository.delete(itemPedido.id);
+    }
 }

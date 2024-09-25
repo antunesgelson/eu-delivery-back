@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, Req } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Req } from "@nestjs/common";
 import { PedidoService } from "./pedido.service";
 import { AdicionarItemAoCarrinhoDTO } from "./dto/adicionarItemAoCarrinho.dto";
 
@@ -19,8 +19,20 @@ export class PedidoController {
         return this.pedidoService.itensDoCarrinho({usuarioId:request.user.sub})
     }
 
+
+
     @Put('/carrinho')
-    async editarQuantidadeDeItensNoCarrinho() { }
+    async editarQuantidadeDeItensNoCarrinho(@Body() dadosDTO, @Req() request) {
+        const item ={...dadosDTO, usuarioId:request.user.sub};
+        return this.pedidoService.editarQuantidadeDeItensNoCarrinho(item);
+    }
+
+
+    @Delete('/carrinho/item/:itemId')
+    async removerItemDoCarrinho(@Param('itemId', ParseIntPipe) itemId: number, @Req() request) {
+        const item ={pedidoItemId:itemId, usuarioId:request.user.sub};
+        return this.pedidoService.removerItemDoCarrinho(item);
+    }
 
     @Get()
     async buscarUltimosPedidos() { }

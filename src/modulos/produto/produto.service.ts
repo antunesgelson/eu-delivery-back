@@ -97,14 +97,7 @@ export class ProdutoService {
         return produtoSalvo;
     }
 
-    async buscarPorId(produtoId: number) { // Lista um produto pelo ID
-        const produto = await this.produtoRepository.findOne({
-            where: { id: produtoId },
-            relations: ['produtosIngredientes'], // Carregar as relações de ingredientes
-        });
-        if (!produto) { throw new NotFoundException(`Produto com ID ${produtoId} não encontrado.`); }
-        return produto;
-    }
+
 
     async buscarPorCategoria(categoria: string) { // Lista um produto pelo ID
         if (!categoria || categoria == "") { throw new BadRequestException("Categoria não pode ser vazio.") }
@@ -155,6 +148,27 @@ export class ProdutoService {
             }))
         };
         return produtoFormatado;
+    }
+
+        async buscarPorId(produtoId: number) { // Lista um produto pelo ID
+            const produtoResult = await this.produtoRepository.findOne({
+                where: { id: produtoId },
+                relations: ['produtosIngredientes','produtosIngredientes.ingrediente','adicionais'], // Carregar as relações de ingredientes
+            });
+            if (!produtoResult) { throw new NotFoundException(`Produto com ID ${produtoId} não encontrado.`); }
+    
+            const produtoFormatado = {
+                ...produtoResult,
+                ingredientes: produtoResult.produtosIngredientes.map(pi => ({
+                    id: pi.id,
+                    quantia: pi.quantia,
+                    removivel: pi.removivel,
+                    nomeIngrediente: pi.ingrediente.nome, // Pega o nome do ingrediente diretamente
+                    valorIngrediente: pi.ingrediente.valor // Pega o valor do ingrediente diretamente
+                }))
+            };
+            delete produtoFormatado.produtosIngredientes
+            return produtoFormatado;
     }
 
 }
