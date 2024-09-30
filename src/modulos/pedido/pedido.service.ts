@@ -72,8 +72,6 @@ export class PedidoService {
         return {...pedido_carrinho,valorTotalPedido: pedido_valorTotal};
     }
 
-    
-
     async editarQuantidadeDeItensNoCarrinho(item){
         //validar numero negativo
         const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: item.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO }, relations: ["itens"] })
@@ -89,5 +87,9 @@ export class PedidoService {
         const itemPedido = pedido_carrinho.itens.find((itemFind)=>{return itemFind.id == item.pedidoItemId})
         if(!itemPedido) throw new NotFoundException('Item não encontrado.');
         return this.pedidoItensRepository.delete(itemPedido.id);
+    }
+
+    async buscarUltimosPedidos(){
+        
     }
 }

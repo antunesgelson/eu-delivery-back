@@ -35,7 +35,9 @@ export class PedidoController {
     }
 
     @Get()
-    async buscarUltimosPedidos() { }
+    async buscarUltimosPedidos(){
+        
+    }
 
     @Get(':pedidoId')
     async buscarPedidoPorId() { }

@@ -25,17 +25,20 @@ export class PedidoItensEntity {
     @Column({ type: 'float' })
     valor: number;
 
-    @Column({ type: 'json', nullable: true }) // Ingredientes como JSON
+    @Column({ type: 'json', nullable: false, default:'{}'}) // Ingredientes como JSON
     ingredientes: Ingrediente[]; // Você pode tipar isso como quiser, por exemplo: any[] para um array
 
-    @Column({ type: 'json', nullable: true }) // Adicionais como JSON
+    @Column({ type: 'json', nullable: false, default:'{}'}) // Ingredientes como JSON
     adicionais: Adicional[];
+
 
     @Column({ type: 'float', default: 0 })
     valorAdicionais: number;
 
     @Column({ type: 'int', default: 1 })
     quantidade: number;
+
+    
 
     @Column({ type: 'text', default: '' })
     obs: string;
