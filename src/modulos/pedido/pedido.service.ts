@@ -68,7 +68,7 @@ export class PedidoService {
 
     async itensDoCarrinho(itensDoCarrinhoDTO: { usuarioId: number }) {
         const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: itensDoCarrinhoDTO.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO }, relations: ["itens"] })
-        const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + item.valor + item.valorAdicionais }, 0)
+        const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + ((item.valor + item.valorAdicionais)* item.quantidade) }, 0)
         return {...pedido_carrinho,valorTotalPedido: pedido_valorTotal};
     }
 
