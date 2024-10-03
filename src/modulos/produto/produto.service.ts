@@ -143,8 +143,8 @@ export class ProdutoService {
                 id: pi.id,
                 quantia: pi.quantia,
                 removivel: pi.removivel,
-                nomeIngrediente: pi.ingrediente.nome, // Pega o nome do ingrediente diretamente
-                valorIngrediente: pi.ingrediente.valor // Pega o valor do ingrediente diretamente
+                nome: pi.ingrediente.nome, // Pega o nome do ingrediente diretamente
+                valor: pi.ingrediente.valor // Pega o valor do ingrediente diretamente
             }))
         };
         return produtoFormatado;
@@ -163,8 +163,8 @@ export class ProdutoService {
                     id: pi.id,
                     quantia: pi.quantia,
                     removivel: pi.removivel,
-                    nomeIngrediente: pi.ingrediente.nome, // Pega o nome do ingrediente diretamente
-                    valorIngrediente: pi.ingrediente.valor // Pega o valor do ingrediente diretamente
+                    nome: pi.ingrediente.nome, // Pega o nome do ingrediente diretamente
+                    valor: pi.ingrediente.valor // Pega o valor do ingrediente diretamente
                 }))
             };
             delete produtoFormatado.produtosIngredientes
