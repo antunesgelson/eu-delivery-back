@@ -1,12 +1,13 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PedidoEntity, StatusPedidoEnum } from "./pedido.entity";
-import { In, Repository } from "typeorm";
+import { In, Not, Repository } from "typeorm";
 import { ProdutoEntity } from "../produto/produtos.entity";
 import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
 import { PedidoItensEntity } from "./pedidoItens.entity";
 
 import { AdicionarItemAoCarrinhoDTO } from "./dto/adicionarItemAoCarrinho.dto";
+import { BuscarPedidoPorIdDTO } from "./dto/buscarPedidoPorId.dto";
 
 @Injectable()
 export class PedidoService {
@@ -20,6 +21,8 @@ export class PedidoService {
     ) { }
 
     async adicionarItemAoCarrinho(pedido: AdicionarItemAoCarrinhoDTO & { clienteId: any }) {
+        //quantidade de itens do carrinho não deve ser menor que 1
+        if(pedido.quantidade < 1)throw new ConflictException('A quantidade minima não deve ser menor que 1')
         // buscar pedido que está com statos "no carrinho" do usuário atual
         let pedido_atual = await this.pedidoRepository.findOne({ where: { cliente: { id: pedido.clienteId }, status: StatusPedidoEnum.NO_CARRINHO } });
         if (!pedido_atual) pedido_atual = new PedidoEntity();
@@ -68,9 +71,13 @@ export class PedidoService {
 
     async itensDoCarrinho(itensDoCarrinhoDTO: { usuarioId: number }) {
         const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: itensDoCarrinhoDTO.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO }, relations: ["itens"] })
+        if(!pedido_carrinho) throw new NotFoundException('Pedido não encontrado.')
         const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + ((item.valor + item.valorAdicionais)* item.quantidade) }, 0)
         return {...pedido_carrinho,valorTotalPedido: pedido_valorTotal};
+        
     }
+
+
 
     async editarQuantidadeDeItensNoCarrinho(item){
         //validar numero negativo
@@ -89,7 +96,21 @@ export class PedidoService {
         return this.pedidoItensRepository.delete(itemPedido.id);
     }
 
-    async buscarUltimosPedidos(){
-        
+    async buscarUltimosPedidos(itensDoCarrinhoDTO: { usuarioId: number }) {
+        const pedidos = [];
+        const pedidos_carrinho = await this.pedidoRepository.find({ where: { cliente: { id: itensDoCarrinhoDTO.usuarioId }, status: Not(StatusPedidoEnum.NO_CARRINHO) }, relations: ["itens"] })
+        for(const pedido_carrinho of pedidos_carrinho){
+            const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + ((item.valor + item.valorAdicionais)* item.quantidade) }, 0)
+            pedidos.push({...pedido_carrinho,valorTotalPedido: pedido_valorTotal})
+        }
+        return pedidos
+    }
+
+    async buscarPedidoPorId(itensDoCarrinhoDTO: BuscarPedidoPorIdDTO &  { usuarioId: number }) {
+        console.log(itensDoCarrinhoDTO);
+        const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: itensDoCarrinhoDTO.usuarioId }, id:itensDoCarrinhoDTO.pedidoId }, relations: ["itens"] })
+        if(!pedido_carrinho) throw new NotFoundException('Pedido não encontrado.')
+        const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + ((item.valor + item.valorAdicionais)* item.quantidade) }, 0)
+        return {...pedido_carrinho,valorTotalPedido: pedido_valorTotal};
     }
 }

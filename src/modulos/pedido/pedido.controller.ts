@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Req } from "@nestjs/common";
 import { PedidoService } from "./pedido.service";
 import { AdicionarItemAoCarrinhoDTO } from "./dto/adicionarItemAoCarrinho.dto";
+import { BuscarPedidoPorIdDTO } from "./dto/buscarPedidoPorId.dto";
 
 @Controller('pedido')
 export class PedidoController {
@@ -35,11 +36,14 @@ export class PedidoController {
     }
 
     @Get()
-    async buscarUltimosPedidos(){
-        
+    async buscarUltimosPedidos(@Req() request){
+        return this.pedidoService.buscarUltimosPedidos({usuarioId:request.user.sub})
     }
 
+
     @Get(':pedidoId')
-    async buscarPedidoPorId() { }
+    async buscarPedidoPorId(@Param() dto:BuscarPedidoPorIdDTO,@Req() request) {
+        return this.pedidoService.buscarPedidoPorId({...dto, usuarioId:request.user.sub})
+    }
 
 }
