@@ -50,8 +50,7 @@ export class ProdutoController {
     async deletarAdicional(@Body() produtoDTO: DeletarAdicionalProdutoDTO) {
         return this.produtoService.deletarAdicional(produtoDTO)
     }
-
-
+    
     @Post('/foto/:produtoId')
     @SetMetadata('isAdmin', true)
     @UseInterceptors(FileInterceptor('img', { limits: { fileSize: 5 * 1024 * 1024 } }))  // Lida com o campo de arquivo 'img'
@@ -74,8 +73,6 @@ export class ProdutoController {
     async getById(@Param('id', ParseIntPipe) id: number) {
         return this.produtoService.buscarPorId(id);
     }
-
-
 
     @Delete(':produtoId')
     @SetMetadata('isAdmin', true)

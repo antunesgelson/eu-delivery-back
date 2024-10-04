@@ -6,11 +6,13 @@ import { PedidoEntity } from "./pedido.entity";
 import { ProdutoEntity } from "../produto/produtos.entity";
 import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
 import { PedidoItensEntity } from "./pedidoItens.entity";
+import { EnderecoModule } from "../endereco/endereco.module";
+import { EnderecoEntity } from "../endereco/endereco.entity";
 
 @Module({
-    imports:[TypeOrmModule.forFeature([PedidoEntity,ProdutoEntity,IngredientesEntity,PedidoItensEntity])],
+    imports:[EnderecoModule,TypeOrmModule.forFeature([PedidoEntity,ProdutoEntity,IngredientesEntity,PedidoItensEntity,EnderecoEntity])],
     controllers:[PedidoController],
-    providers:[PedidoService]
+    providers:[PedidoService],
 })
 export class PedidoModule{
 

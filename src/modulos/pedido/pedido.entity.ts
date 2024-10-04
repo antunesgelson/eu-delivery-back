@@ -31,7 +31,7 @@ export class PedidoEntity {
     @ManyToOne(() => UsuarioEntiy, (cliente) => cliente.pedidos)
     cliente: UsuarioEntiy
 
-    @Column({ type: "json", nullable: true })
+    @Column({ type: 'json', nullable: false, default:'{}'}) 
     endereco: enderecoPedido
 
     //cupom //cupom utilizado

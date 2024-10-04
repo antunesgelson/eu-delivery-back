@@ -16,6 +16,11 @@ export class EnderecoController {
         return this.enderecoService.adicionar(adicionarDTO);
     }
     
+    @Get("favorito-ou-relevante")
+    async buscarEnderecoFavoritoOuMaisRelevante(@Req() request){
+        return this.enderecoService.buscarEnderecoFavoritoOuMaisRelevante({usuarioId:request.user.sub})
+    }
+
     @Get('todos')
     async buscarTodosEnderecos(@Req() request) {
         return this.enderecoService.buscarTodosEnderecos({usuarioId:request.user.sub});
