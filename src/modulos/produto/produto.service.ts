@@ -78,7 +78,7 @@ export class ProdutoService {
         if (!produto) throw new NotFoundException('Produto não encontrado.');
         const isExist = produto.adicionais.some((item) => { return item.id == produtoDTO.ingredienteId });
         if (!isExist) throw new ConflictException('Adicional não está cadastrado nesse produto.');
-        const adicionais = produto.adicionais.filter((item)=>{return item.id != produtoDTO.ingredienteId})
+        const adicionais = produto.adicionais.filter((item) => { return item.id != produtoDTO.ingredienteId })
         produto.adicionais = adicionais
         return this.produtoRepository.save(produto);
     }
@@ -150,25 +150,35 @@ export class ProdutoService {
         return produtoFormatado;
     }
 
-        async buscarPorId(produtoId: number) { // Lista um produto pelo ID
-            const produtoResult = await this.produtoRepository.findOne({
-                where: { id: produtoId },
-                relations: ['produtosIngredientes','produtosIngredientes.ingrediente','adicionais'], // Carregar as relações de ingredientes
-            });
-            if (!produtoResult) { throw new NotFoundException(`Produto com ID ${produtoId} não encontrado.`); }
-    
-            const produtoFormatado = {
-                ...produtoResult,
-                ingredientes: produtoResult.produtosIngredientes.map(pi => ({
-                    id: pi.id,
-                    quantia: pi.quantia,
-                    removivel: pi.removivel,
-                    nome: pi.ingrediente.nome, // Pega o nome do ingrediente diretamente
-                    valor: pi.ingrediente.valor // Pega o valor do ingrediente diretamente
-                }))
-            };
-            delete produtoFormatado.produtosIngredientes
-            return produtoFormatado;
+    async deletarTodosIngredientesDeUmProduto(produtoId:number){
+        return this.produtoIngredienteRepository.delete({ produto: { id: produtoId } });
+    }
+
+    async deletarTodosAdicionaisDeUmProduto(produtoId:number){
+        const produto = await this.produtoRepository.findOne({where:{id:produtoId}})
+        produto.adicionais = []
+        return this.produtoRepository.save(produto);
+    }
+
+    async buscarPorId(produtoId: number) { // Lista um produto pelo ID
+        const produtoResult = await this.produtoRepository.findOne({
+            where: { id: produtoId },
+            relations: ['produtosIngredientes', 'produtosIngredientes.ingrediente', 'adicionais'], // Carregar as relações de ingredientes
+        });
+        if (!produtoResult) { throw new NotFoundException(`Produto com ID ${produtoId} não encontrado.`); }
+
+        const produtoFormatado = {
+            ...produtoResult,
+            ingredientes: produtoResult.produtosIngredientes.map(pi => ({
+                id: pi.id,
+                quantia: pi.quantia,
+                removivel: pi.removivel,
+                nome: pi.ingrediente.nome, // Pega o nome do ingrediente diretamente
+                valor: pi.ingrediente.valor // Pega o valor do ingrediente diretamente
+            }))
+        };
+        delete produtoFormatado.produtosIngredientes
+        return produtoFormatado;
     }
 
 }

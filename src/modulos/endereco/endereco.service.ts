@@ -19,6 +19,8 @@ export class EnderecoService {
                 end.numero == adicionarDTO.numero
             ) throw new ConflictException("Endereço já cadastrado.")
         }
+        adicionarDTO.favorite = true;
+        await this.enderecoRepository.update({usuario:{id:adicionarDTO.usuarioId}},{favorite:false})
         return this.enderecoRepository.save({...adicionarDTO,usuario:{id:adicionarDTO.usuarioId}});
     }
 

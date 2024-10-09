@@ -31,26 +31,33 @@ export class ProdutoController {
     @Post('adicional')
     @SetMetadata('isAdmin', true)
     async adicionarAdicional(@Body() produto: AddAdicionalProdutoDTO | AddAdicionalProdutoDTO[]) {
-        if(Array.isArray(produto)){
-            return Promise.all(produto.map(p=> this.produtoService.adicionarAdicional(p)));
-        }else{ return this.produtoService.adicionarAdicional(produto);}
+        if (Array.isArray(produto)) {
+            console.log(await this.produtoService.deletarTodosAdicionaisDeUmProduto(produto[0].produtoId))
+            let result = [];
+            for(const p of produto){
+                result.push(await this.produtoService.adicionarAdicional(p))
+            }
+            return result;
+        } else {
+            console.log(await this.produtoService.deletarTodosAdicionaisDeUmProduto(produto.produtoId))
+            return this.produtoService.adicionarAdicional(produto);
+        }
     }
 
     @Post('adicionar-ingredientes')
     @SetMetadata('isAdmin', true)
     async addProductIngredient(@Body() produto: AddProductIngrentDTO | AddProductIngrentDTO[]) {
         if (Array.isArray(produto)) {
+            await this.produtoService.deletarTodosIngredientesDeUmProduto(produto[0].produtoId)
             return Promise.all(produto.map(p => this.produtoService.adicionarIngredientes(p)));
-        } else { return this.produtoService.adicionarIngredientes(produto);}
+        } else {
+            await this.produtoService.deletarTodosIngredientesDeUmProduto(produto.produtoId)
+            return this.produtoService.adicionarIngredientes(produto);
+        }
     }
 
 
-    @Delete('adicional')
-    @SetMetadata('isAdmin', true)
-    async deletarAdicional(@Body() produtoDTO: DeletarAdicionalProdutoDTO) {
-        return this.produtoService.deletarAdicional(produtoDTO)
-    }
-    
+
     @Post('/foto/:produtoId')
     @SetMetadata('isAdmin', true)
     @UseInterceptors(FileInterceptor('img', { limits: { fileSize: 5 * 1024 * 1024 } }))  // Lida com o campo de arquivo 'img'
