@@ -7,6 +7,10 @@ export class AlterarEnderecoDataDeEntregaDTO{
     enderecoId:number
 
     @IsOptional()
+    @IsString()
+    cupomId:string
+
+    @IsOptional()
     @IsDate()
     @Type(()=>Date)
     dataEntrega:Date

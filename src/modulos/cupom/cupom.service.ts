@@ -2,16 +2,20 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 
 import { InjectRepository } from "@nestjs/typeorm";
 import { CupomEntity, TipoCupomEnum } from "./cupom.entity";
-import { Like, Repository } from "typeorm";
+import { In, Like, Not, Repository } from "typeorm";
 import { BuscarCupomPorIdDTO } from "./dto/buscarCupomPorId.dto";
 import { BuscarCupomFiltroAvancado } from "./dto/buscarCupomFiltroAvancado.dto";
 import { EditarCupomDTO } from "./dto/editarCupom.dto";
 import { AdicionarCupomDTO } from "./dto/adiconarCupom.dto";
+import { CupomUtilizadoEntity } from "./cupomUtilizado.entity";
 
 @Injectable()
 export class CupomService {
 
-    constructor(@InjectRepository(CupomEntity) private cupomRepository: Repository<CupomEntity>) { }
+    constructor(
+        @InjectRepository(CupomEntity) private cupomRepository: Repository<CupomEntity>,
+        @InjectRepository(CupomUtilizadoEntity) private cupomUtilizadoRepository: Repository<CupomUtilizadoEntity>
+    ) { }
 
     async cadastrarCupom(cupom: AdicionarCupomDTO) {
         const isExisteCupom = await this.cupomRepository.findOne({ where: { nome: cupom.nome } });
@@ -65,5 +69,18 @@ export class CupomService {
         return this.cupomRepository.save(cupom)
     }
 
+    async buscarCupomFree(dto: { usuarioId: number }) {
+        //pega os cupons utilizados
+        const cuponsUtilizados = await this.cupomUtilizadoRepository.find({ where: { usuarioId: dto.usuarioId }, select: ['cupomId'] });
+        //separa os ids unicos dos cupons utilizados
+        const cuponsIds = new Set(cuponsUtilizados.map(item => item.cupomId));
+        //pega todos cupons disponives com listaPublica = true
+        const cuponsDisponiveis = await this.cupomRepository.find({ where: { listaPublica: true } });
+        //filtra os itens que são de usounico e que não foram utilizados e também pega todos que não são de usó unico.
+        return cuponsDisponiveis.filter(item => (item.unicoUso && !cuponsIds.has(item.id)) || !item.unicoUso );
+
+       
+      
+    }
 
 }

@@ -9,7 +9,7 @@ import { PedidoItensEntity } from "./pedidoItens.entity";
 import { AdicionarItemAoCarrinhoDTO } from "./dto/adicionarItemAoCarrinho.dto";
 import { BuscarPedidoPorIdDTO } from "./dto/buscarPedidoPorId.dto";
 import { EnderecoService } from "../endereco/endereco.service";
-import { AlterarEnderecoDataDeEntregaDTO } from "./dto/alterarEnderecoDataDeEntrega.dto";
+import { AlterarEnderecoDataDeEntregaDTO } from "./dto/alterarPedido.dto";
 import { EnderecoEntity } from "../endereco/endereco.entity";
 import { plainToClass, plainToInstance } from "class-transformer";
 import { PedidoDto } from "./dto/pedido.dto";
@@ -89,7 +89,7 @@ export class PedidoService {
     }
 
 
-    async alterarPedidoEnderecoDataDeEntrega(dto:AlterarEnderecoDataDeEntregaDTO & {usuarioId:number}){
+    async alterarPedido(dto:AlterarEnderecoDataDeEntregaDTO & {usuarioId:number}){
         const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: dto.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO } })
         if(!pedido_carrinho) throw new NotFoundException('Pedido não encontrado.')
         if(dto.enderecoId){
@@ -99,6 +99,11 @@ export class PedidoService {
         }
         if(dto.dataEntrega)pedido_carrinho.dataEntrega = dto.dataEntrega;
         if(dto.obs)pedido_carrinho.obs = dto.obs;
+
+        // if(dto.cupomId){
+        //     pedido_carrinho.cupomId = dto.cupomId
+        // }
+
         await this.pedidoRepository.save(pedido_carrinho);
         return plainToInstance(PedidoDto,pedido_carrinho);
     }

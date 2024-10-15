@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Req } fr
 import { PedidoService } from "./pedido.service";
 import { AdicionarItemAoCarrinhoDTO } from "./dto/adicionarItemAoCarrinho.dto";
 import { BuscarPedidoPorIdDTO } from "./dto/buscarPedidoPorId.dto";
-import { AlterarEnderecoDataDeEntregaDTO } from "./dto/alterarEnderecoDataDeEntrega.dto";
+import { AlterarEnderecoDataDeEntregaDTO } from "./dto/alterarPedido.dto";
 
 @Controller('pedido')
 export class PedidoController {
@@ -10,8 +10,8 @@ export class PedidoController {
     constructor(private pedidoService: PedidoService) { }
 
     @Put()
-    async alterarPedidoEnderecoDataDeEntrega(@Body() dto:AlterarEnderecoDataDeEntregaDTO, @Req() request){
-        return this.pedidoService.alterarPedidoEnderecoDataDeEntrega({...dto, usuarioId:request.user.sub});
+    async alterarPedido(@Body() dto:AlterarEnderecoDataDeEntregaDTO, @Req() request){
+        return this.pedidoService.alterarPedido({...dto, usuarioId:request.user.sub});
     } 
 
     @Post('/carrinho')

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Query, Req } from "@nestjs/common";
 import { AdicionarCupomDTO } from "./dto/adiconarCupom.dto";
 import { CupomService } from "./cupom.service";
 import { BuscarCupomPorIdDTO } from "./dto/buscarCupomPorId.dto";
@@ -19,14 +19,21 @@ export class CupomController {
         return this.cupomService.buscarCupomFiltroAvancado(dto);
     }
 
-    @Get('/:cupomId')
-    async buscarCuporPorId(@Param() cupom: BuscarCupomPorIdDTO) {
-        return this.cupomService.buscarCuporPorId(cupom);
+    @Get('/free')
+    async buscarCupomFree(@Req() request){
+      return this.cupomService.buscarCupomFree({usuarioId:request.user.id})
     }
+
+   
 
     @Put()
     async editarCupom(@Body() cupom: EditarCupomDTO) {
         return this.cupomService.editarCupom(cupom);
+    }
+
+    @Get('/:cupomId')
+    async buscarCuporPorId(@Param() cupom: BuscarCupomPorIdDTO) {
+        return this.cupomService.buscarCuporPorId(cupom);
     }
 
 }
