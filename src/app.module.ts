@@ -14,6 +14,7 @@ import { JwtAuthGuard } from './modulos/auth/guards/jwt-auth.guard';
 import { EnderecoModule } from './modulos/endereco/endereco.module';
 import { s3Module } from './modulos/s3/s3.module';
 import { PedidoModule } from './modulos/pedido/pedido.module';
+import { CupomModule } from './modulos/cupom/cupom.module';
 
 
 @Module({
@@ -27,6 +28,7 @@ import { PedidoModule } from './modulos/pedido/pedido.module';
     SharedModule,
     s3Module,
     EnderecoModule,
+    CupomModule,
     PedidoModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(databaseConfig()),

@@ -39,6 +39,12 @@ export class PedidoEntity {
     @Column({type:'float', default:0})
     cashBack:number
 
+    @Column({type:'integer', default:0})
+    cupomId:number
+
+    @Column({type:'float', default:0})
+    descontoCupom:number
+
     @Column({ type: "timestamp",nullable: true })
     dataEntrega: Date
 

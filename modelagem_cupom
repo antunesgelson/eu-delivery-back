@@ -1,0 +1,14 @@
+==>> cupom
+id
+nome
+descricao
+valor
+tipo ( %,  valorFixo)
+quantidade
+validade
+status
+valorMinimoGasto
+listaPublica // aparece na lista de todos para usar o cupom.
+unicoUso // só pode usar  uma vez...
+
+
