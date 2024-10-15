@@ -74,12 +74,13 @@ export class PedidoService {
             adicionais: pedido_adicionais,
             produto: produto
         }
+        console.log(item_pedido_atual)
         const itemPedido = await this.pedidoItensRepository.save(item_pedido_atual)
         return itemPedido;
     }
 
     async itensDoCarrinho(itensDoCarrinhoDTO: { usuarioId: number }) {
-        const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: itensDoCarrinhoDTO.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO }, relations: ["itens"] })
+        const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: itensDoCarrinhoDTO.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO }, relations: ["itens", "itens.produto"] })
         if (!pedido_carrinho) throw new NotFoundException('Pedido não encontrado.')
         const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + ((item.valor + item.valorAdicionais) * item.quantidade) }, 0)
         if (Object.keys(pedido_carrinho.endereco).length == 0) {// se não tem o endereço adiciona o mais relevante...
@@ -87,6 +88,7 @@ export class PedidoService {
             pedido_carrinho.endereco = endereco as enderecoPedido;
             await this.pedidoRepository.save(pedido_carrinho);
         }
+
         return { ...pedido_carrinho, valorTotalPedido: pedido_valorTotal };
     }
 
@@ -104,12 +106,12 @@ export class PedidoService {
             const cupom = await this.cupomRepository.findOne({ where: { nome: dto.cupom } });
             if (cupom) {
                 pedido_carrinho.cupomId = cupom.id;
-            }else{
+            } else {
                 pedido_carrinho.cupomId = '';
             }
         }
         await this.pedidoRepository.save(pedido_carrinho);
-        if(dto.cupom && pedido_carrinho.cupomId == "") throw new ConflictException('Cupom não encontrado');
+        if (dto.cupom && pedido_carrinho.cupomId == "") throw new ConflictException('Cupom não encontrado');
         return plainToInstance(PedidoDto, pedido_carrinho);
     }
 
