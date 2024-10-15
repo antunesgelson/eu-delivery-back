@@ -8,7 +8,7 @@ export class AlterarEnderecoDataDeEntregaDTO{
 
     @IsOptional()
     @IsString()
-    cupomId:string
+    cupom:string
 
     @IsOptional()
     @IsDate()

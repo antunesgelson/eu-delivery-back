@@ -77,10 +77,7 @@ export class CupomService {
         //pega todos cupons disponives com listaPublica = true
         const cuponsDisponiveis = await this.cupomRepository.find({ where: { listaPublica: true } });
         //filtra os itens que são de usounico e que não foram utilizados e também pega todos que não são de usó unico.
-        return cuponsDisponiveis.filter(item => (item.unicoUso && !cuponsIds.has(item.id)) || !item.unicoUso );
-
-       
-      
+        return cuponsDisponiveis.filter(item => (item.unicoUso && !cuponsIds.has(item.id) ) || !item.unicoUso);
     }
 
 }

@@ -21,7 +21,7 @@ export class CupomController {
 
     @Get('/free')
     async buscarCupomFree(@Req() request){
-      return this.cupomService.buscarCupomFree({usuarioId:request.user.id})
+      return this.cupomService.buscarCupomFree({usuarioId:request.user.sub})
     }
 
    

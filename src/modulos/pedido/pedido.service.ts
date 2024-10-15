@@ -13,6 +13,7 @@ import { AlterarEnderecoDataDeEntregaDTO } from "./dto/alterarPedido.dto";
 import { EnderecoEntity } from "../endereco/endereco.entity";
 import { plainToClass, plainToInstance } from "class-transformer";
 import { PedidoDto } from "./dto/pedido.dto";
+import { CupomEntity } from "../cupom/cupom.entity";
 
 @Injectable()
 export class PedidoService {
@@ -22,7 +23,8 @@ export class PedidoService {
         @InjectRepository(ProdutoEntity) private produtoRepository: Repository<ProdutoEntity>,
         @InjectRepository(IngredientesEntity) private ingredienteRepository: Repository<IngredientesEntity>,
         @InjectRepository(PedidoItensEntity) private pedidoItensRepository: Repository<PedidoItensEntity>,
-        @InjectRepository(EnderecoEntity) private enderecoRepository:Repository<EnderecoEntity>,
+        @InjectRepository(EnderecoEntity) private enderecoRepository: Repository<EnderecoEntity>,
+        @InjectRepository(CupomEntity) private cupomRepository: Repository<CupomEntity>,
         private readonly enderecoService: EnderecoService
 
     ) { }
@@ -89,23 +91,26 @@ export class PedidoService {
     }
 
 
-    async alterarPedido(dto:AlterarEnderecoDataDeEntregaDTO & {usuarioId:number}){
+    async alterarPedido(dto: AlterarEnderecoDataDeEntregaDTO & { usuarioId: number }) {
         const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: dto.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO } })
-        if(!pedido_carrinho) throw new NotFoundException('Pedido não encontrado.')
-        if(dto.enderecoId){
-            const endereco = await this.enderecoRepository.findOne({where:{id:dto.enderecoId,usuario:{id:dto.usuarioId}}})
-            if(!endereco) throw new NotFoundException('Endereço não encontrado.')
+        if (!pedido_carrinho) throw new NotFoundException('Pedido não encontrado.')
+        if (dto.enderecoId) {
+            const endereco = await this.enderecoRepository.findOne({ where: { id: dto.enderecoId, usuario: { id: dto.usuarioId } } })
+            if (!endereco) throw new NotFoundException('Endereço não encontrado.')
             pedido_carrinho.endereco = endereco as enderecoPedido;
         }
-        if(dto.dataEntrega)pedido_carrinho.dataEntrega = dto.dataEntrega;
-        if(dto.obs)pedido_carrinho.obs = dto.obs;
-
-        // if(dto.cupomId){
-        //     pedido_carrinho.cupomId = dto.cupomId
-        // }
-
+        Object.assign(pedido_carrinho, dto);
+        if (dto.cupom) {
+            const cupom = await this.cupomRepository.findOne({ where: { nome: dto.cupom } });
+            if (cupom) {
+                pedido_carrinho.cupomId = cupom.id;
+            }else{
+                pedido_carrinho.cupomId = '';
+            }
+        }
         await this.pedidoRepository.save(pedido_carrinho);
-        return plainToInstance(PedidoDto,pedido_carrinho);
+        if(dto.cupom && pedido_carrinho.cupomId == "") throw new ConflictException('Cupom não encontrado');
+        return plainToInstance(PedidoDto, pedido_carrinho);
     }
 
 

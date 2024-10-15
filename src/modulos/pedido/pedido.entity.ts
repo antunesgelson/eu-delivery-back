@@ -39,8 +39,8 @@ export class PedidoEntity {
     @Column({type:'float', default:0})
     cashBack:number
 
-    @Column({type:'integer', default:0})
-    cupomId:number
+    @Column({default:null})
+    cupomId:string
 
     @Column({type:'float', default:0})
     descontoCupom:number

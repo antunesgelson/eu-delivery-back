@@ -8,9 +8,10 @@ import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
 import { PedidoItensEntity } from "./pedidoItens.entity";
 import { EnderecoModule } from "../endereco/endereco.module";
 import { EnderecoEntity } from "../endereco/endereco.entity";
+import { CupomEntity } from "../cupom/cupom.entity";
 
 @Module({
-    imports:[EnderecoModule,TypeOrmModule.forFeature([PedidoEntity,ProdutoEntity,IngredientesEntity,PedidoItensEntity,EnderecoEntity])],
+    imports:[EnderecoModule,TypeOrmModule.forFeature([PedidoEntity,ProdutoEntity,IngredientesEntity,PedidoItensEntity,EnderecoEntity,CupomEntity])],
     controllers:[PedidoController],
     providers:[PedidoService],
 })
