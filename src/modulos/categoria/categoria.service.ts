@@ -5,6 +5,7 @@ import { CategoriaEntity } from "./categorias.entity";
 import { CategoriaDTO } from "./dto/categoria.dto";
 import { CategoriaEditarDTO } from "./dto/categoriaEditar.dto";
 import { NotFoundError } from "rxjs";
+import { bool } from "aws-sdk/clients/signer";
 
 @Injectable()
 export class CategoriaSerivice {
@@ -35,10 +36,23 @@ export class CategoriaSerivice {
         return this.categoriaRepository.delete(idDelete);
     }
 
-    async list() {return await this.categoriaRepository.find();}
+    async list(dto:{isAdmin:boolean}) {
+        console.log(dto)
+        if(dto.isAdmin){
+            return await this.categoriaRepository.find();
+        }else{
+            return await this.categoriaRepository.find({where:{status:true}});
+        }
+        
+    }
 
-    async listDetails() {
-        return await this.categoriaRepository.find({relations: ['produtos'],});
+    async listDetails(dto:{isAdmin:boolean}) {
+        if(dto.isAdmin){
+            return await this.categoriaRepository.find({relations: ['produtos'],});
+        }else{
+            return await this.categoriaRepository.find({where:{status:true},relations: ['produtos'],});
+        }
+        
     }
 
 }

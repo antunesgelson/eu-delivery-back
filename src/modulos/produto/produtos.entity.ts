@@ -32,6 +32,9 @@ export class ProdutoEntity {
     @Column()
     desconto: number;
 
+    @Column({default:true})
+    status:boolean
+
     @Column()
     limitItens: number;
 

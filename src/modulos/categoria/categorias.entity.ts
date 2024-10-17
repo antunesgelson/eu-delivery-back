@@ -10,6 +10,9 @@ export class CategoriaEntity {
     @Column()
     titulo: string;
 
+    @Column({ default: true })
+    status: boolean
+
     @OneToMany(() => ProdutoEntity, (produto) => produto.categoria)
     produtos: ProdutoEntity[];
 

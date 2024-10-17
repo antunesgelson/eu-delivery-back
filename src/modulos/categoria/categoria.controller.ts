@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, SetMetadata, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Req, SetMetadata, UsePipes, ValidationPipe } from "@nestjs/common";
 import { CategoriaSerivice } from "./categoria.service";
 import { CategoriaDTO } from "./dto/categoria.dto";
 import { IsPublic } from "../auth/decorators/isPublic.decorator";
@@ -36,13 +36,24 @@ export class CategoriaController {
 
     @IsPublic()
     @Get('listar')
-    async listar() {
-        return this.categoriaService.list();
+    async listar(@Req() req) {
+        const usuario = req.user;
+        console.log(usuario);
+        let isAdmin = false;
+        if(usuario){
+            isAdmin = usuario.isAdmin;
+        }
+        return this.categoriaService.list({isAdmin:isAdmin});
     }
 
     @IsPublic()
     @Get('lista/detalhes')
-    async listDetails() {
-        return this.categoriaService.listDetails();
+    async listDetails(@Req() req) {
+        const usuario = req.user;
+        let isAdmin = false;
+        if(usuario){
+            isAdmin = usuario.isAdmin;
+        }
+        return this.categoriaService.listDetails({isAdmin:isAdmin});
     }
 }

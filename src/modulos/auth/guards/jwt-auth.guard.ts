@@ -3,6 +3,8 @@ import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/com
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/isPublic.decorator';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { JwtModule } from '@nestjs/jwt';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -19,6 +21,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
 
     if (isPublic) {
+
+      //--------------Esse codigo é importante para filtrar produtos e caterorias que não são publicas..---
+      //mas que usam rotas publicas.-----------------------------------------------------------------------
+      const request = context.switchToHttp().getRequest();
+      const authorizationToken = request.headers['authorization'] || request.headers['authorization']
+      if(authorizationToken && authorizationToken.startsWith('Bearer ')){
+        await super.canActivate(context);
+      }
+      //----------------------------------------------------------------------------------------------------
       return true;
     }
 
