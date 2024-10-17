@@ -109,7 +109,7 @@ export class ProdutoService {
     async deletarProduto(data: { produtoId: number }) {
         const produto = await this.produtoRepository.findOne({ where: { id: data.produtoId } });
         if (!produto) throw new NotFoundException('Produto não encontrado.')
-        await Promise.all(produto.imgs.map(async (img) => { await this.s3Service.delete(img.Key, img.Bucket); }));
+        if(Array.isArray(produto.imgs)) await Promise.all(produto.imgs.map(async (img) => { await this.s3Service.delete(img.Key, img.Bucket); }));
         return this.produtoRepository.delete(data.produtoId);
     }
 

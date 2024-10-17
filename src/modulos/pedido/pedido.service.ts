@@ -88,7 +88,6 @@ export class PedidoService {
             pedido_carrinho.endereco = endereco as enderecoPedido;
             await this.pedidoRepository.save(pedido_carrinho);
         }
-
         return { ...pedido_carrinho, valorTotalPedido: pedido_valorTotal };
     }
 
