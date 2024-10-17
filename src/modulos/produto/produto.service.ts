@@ -3,14 +3,14 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from 'typeorm';
 import { CategoriaEntity } from '../categoria/categorias.entity';
 import { IngredientesEntity } from '../ingrediente/ingredientes.entity';
-import { AddProductIngrentDTO } from "./dto/addProductIngredient.dto";
-import { ProdutoDTO } from './dto/produto.dto';
-import { ProdutosIngredientesEntity } from "./produtoIngrediente.entity";
-import { ProdutoEntity } from "./produtos.entity";
 import { S3Service } from "../s3/s3.service";
 import { AddFotoProdutoDTO } from "./dto/AddFotoProduto.dto";
 import { AddAdicionalProdutoDTO } from "./dto/addAdicionalProduto.dto";
+import { AddProductIngrentDTO } from "./dto/addProductIngredient.dto";
 import { DeletarAdicionalProdutoDTO } from "./dto/deletarAdicionalProduto.dto";
+import { ProdutoDTO } from './dto/produto.dto';
+import { ProdutosIngredientesEntity } from "./produtoIngrediente.entity";
+import { ProdutoEntity } from "./produtos.entity";
 
 
 
@@ -108,11 +108,16 @@ export class ProdutoService {
 
     async deletarProduto(data: { produtoId: number }) {
         const produto = await this.produtoRepository.findOne({ where: { id: data.produtoId } });
-        if (!produto) throw new NotFoundException('Produto não encontrado.')
-        if(Array.isArray(produto.imgs)) await Promise.all(produto.imgs.map(async (img) => { await this.s3Service.delete(img.Key, img.Bucket); }));
+        if (!produto) throw new NotFoundException('Produto não encontrado.');
+
+        if (Array.isArray(produto.imgs)) {
+            await Promise.all(produto.imgs.map(async (img) => {
+                await this.s3Service.delete(img.Key, img.Bucket);
+            }));
+        }
+
         return this.produtoRepository.delete(data.produtoId);
     }
-
 
     async deletarFotoProduto(data: { produtoId: number, etag: string }) {
         const produto = await this.produtoRepository.findOne({ where: { id: data.produtoId } });
@@ -150,12 +155,12 @@ export class ProdutoService {
         return produtoFormatado;
     }
 
-    async deletarTodosIngredientesDeUmProduto(produtoId:number){
+    async deletarTodosIngredientesDeUmProduto(produtoId: number) {
         return this.produtoIngredienteRepository.delete({ produto: { id: produtoId } });
     }
 
-    async deletarTodosAdicionaisDeUmProduto(produtoId:number){
-        const produto = await this.produtoRepository.findOne({where:{id:produtoId}})
+    async deletarTodosAdicionaisDeUmProduto(produtoId: number) {
+        const produto = await this.produtoRepository.findOne({ where: { id: produtoId } })
         produto.adicionais = []
         return this.produtoRepository.save(produto);
     }
