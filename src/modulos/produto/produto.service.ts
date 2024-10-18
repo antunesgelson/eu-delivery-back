@@ -99,10 +99,16 @@ export class ProdutoService {
 
 
 
-    async buscarPorCategoria(categoria: string) { // Lista um produto pelo ID
-        if (!categoria || categoria == "") { throw new BadRequestException("Categoria não pode ser vazio.") }
-        const produto = await this.produtoRepository.find({ where: { categoria: { titulo: categoria } } });
-        if (!produto) { throw new NotFoundException(`Produto com a categoria ${categoria} não encontrado.`); }
+    async buscarPorCategoria(dto:{categoria: string,isAdmin:boolean}) { // Lista um produto pelo ID
+        if (!dto.categoria || dto.categoria == "") { throw new BadRequestException("Categoria não pode ser vazio.") }
+        let where:any;
+        if(dto.isAdmin){
+            where = { where: { categoria: { titulo: dto.categoria } } }
+        }else{
+            where = { where: { categoria: { titulo: dto.categoria,status:true },status:true} }
+        }
+        const produto = await this.produtoRepository.find(where);
+        if (!produto) { throw new NotFoundException(`Produto com a categoria ${dto.categoria} não encontrado.`); }
         return produto;
     }
 
@@ -164,12 +170,17 @@ export class ProdutoService {
         return this.produtoRepository.save(produto);
     }
 
-    async buscarPorId(produtoId: number) { // Lista um produto pelo ID
-        const produtoResult = await this.produtoRepository.findOne({
-            where: { id: produtoId },
+    async buscarPorId(dto:{produtoId: number,isAdmin:boolean}) { // Lista um produto pelo ID
+        let where:any
+        where = {
+            where: { id: dto.produtoId },
             relations: ['produtosIngredientes', 'produtosIngredientes.ingrediente', 'adicionais'], // Carregar as relações de ingredientes
-        });
-        if (!produtoResult) { throw new NotFoundException(`Produto com ID ${produtoId} não encontrado.`); }
+        }
+        if(!dto.isAdmin){
+            where.where.status = true
+        }
+        const produtoResult = await this.produtoRepository.findOne(where);
+        if (!produtoResult) { throw new NotFoundException(`Produto com ID ${dto.produtoId} não encontrado.`); }
 
         const produtoFormatado = {
             ...produtoResult,

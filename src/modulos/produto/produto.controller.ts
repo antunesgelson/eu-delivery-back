@@ -71,14 +71,24 @@ export class ProdutoController {
 
     @IsPublic()
     @Get('/categoria/:categoria')
-    async getByCategoria(@Param('categoria') categoria: string) {
-        return this.produtoService.buscarPorCategoria(categoria);
+    async getByCategoria(@Param('categoria') categoria: string,@Req() req) {
+        const usuario = req.user;
+        let isAdmin = false;
+        if(usuario){
+            isAdmin = usuario.isAdmin;
+        }
+        return this.produtoService.buscarPorCategoria({categoria:categoria,isAdmin:isAdmin});
     }
 
     @IsPublic()
     @Get(':id')
-    async getById(@Param('id', ParseIntPipe) id: number) {
-        return this.produtoService.buscarPorId(id);
+    async getById(@Param('id', ParseIntPipe) id: number,@Req() req) {
+        const usuario = req.user;
+        let isAdmin = false;
+        if(usuario){
+            isAdmin = usuario.isAdmin;
+        }
+        return this.produtoService.buscarPorId({produtoId:id,isAdmin:isAdmin});
     }
 
     @Delete(':produtoId')
