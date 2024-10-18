@@ -38,7 +38,6 @@ export class CategoriaController {
     @Get('listar')
     async listar(@Req() req) {
         const usuario = req.user;
-        console.log(usuario);
         let isAdmin = false;
         if(usuario){
             isAdmin = usuario.isAdmin;
