@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Post, Put, Query, Req } from "@nestjs/common";
 import { AdicionarCupomDTO } from "./dto/adiconarCupom.dto";
 import { CupomService } from "./cupom.service";
 import { BuscarCupomPorIdDTO } from "./dto/buscarCupomPorId.dto";
@@ -24,11 +24,15 @@ export class CupomController {
       return this.cupomService.buscarCupomFree({usuarioId:request.user.sub})
     }
 
-   
-
     @Put()
     async editarCupom(@Body() cupom: EditarCupomDTO) {
         return this.cupomService.editarCupom(cupom);
+    }
+
+    @Get('/ativar/:cupom')
+    async ativarCupom(@Param() cupom:{cupom:string},@Req() req){
+        if(!cupom.cupom || cupom.cupom=="") throw new BadRequestException('Erro ao tentar ativar o cupom /cupom/ativar/:cupom')
+        return this.cupomService.ativarCupom({cupom:cupom.cupom,usuarioId:req.user.sub})
     }
 
     @Get('/:cupomId')
@@ -36,4 +40,5 @@ export class CupomController {
         return this.cupomService.buscarCuporPorId(cupom);
     }
 
+    
 }

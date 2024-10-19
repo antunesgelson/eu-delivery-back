@@ -8,13 +8,17 @@ import { BuscarCupomFiltroAvancado } from "./dto/buscarCupomFiltroAvancado.dto";
 import { EditarCupomDTO } from "./dto/editarCupom.dto";
 import { AdicionarCupomDTO } from "./dto/adiconarCupom.dto";
 import { CupomUtilizadoEntity } from "./cupomUtilizado.entity";
+import { PedidoService } from "../pedido/pedido.service";
+import { UsuarioController } from "../usuario/usuario.controller";
+import { AlterarEnderecoDataDeEntregaDTO } from "../pedido/dto/alterarPedido.dto";
 
 @Injectable()
 export class CupomService {
 
     constructor(
         @InjectRepository(CupomEntity) private cupomRepository: Repository<CupomEntity>,
-        @InjectRepository(CupomUtilizadoEntity) private cupomUtilizadoRepository: Repository<CupomUtilizadoEntity>
+        @InjectRepository(CupomUtilizadoEntity) private cupomUtilizadoRepository: Repository<CupomUtilizadoEntity>,
+        private pedidoService: PedidoService
     ) { }
 
     async cadastrarCupom(cupom: AdicionarCupomDTO) {
@@ -77,7 +81,21 @@ export class CupomService {
         //pega todos cupons disponives com listaPublica = true
         const cuponsDisponiveis = await this.cupomRepository.find({ where: { listaPublica: true } });
         //filtra os itens que são de usounico e que não foram utilizados e também pega todos que não são de usó unico.
-        return cuponsDisponiveis.filter(item => (item.unicoUso && !cuponsIds.has(item.id) ) || !item.unicoUso);
+        return cuponsDisponiveis.filter(item => (item.unicoUso && !cuponsIds.has(item.id)) || !item.unicoUso);
     }
+
+    async ativarCupom(dto: { cupom: string, usuarioId: number }) {
+        const cupom = await this.cupomRepository.findOne({ where: { nome: dto.cupom } });
+        if (!cupom) throw new NotFoundException('Cupom não encontrado.')
+        const pedido = await this.pedidoService.itensDoCarrinho({ usuarioId: dto.usuarioId })
+        if (!pedido) throw new NotFoundException('Pedido não encontrado.')
+        if (pedido.valorTotalPedido < cupom.valorMinimoGasto) throw new ConflictException('Não é possível ativar o cupom, você não atingiu o valor mínimo de gasto.')
+        let alterarPedidoDTO = new AlterarEnderecoDataDeEntregaDTO()
+        alterarPedidoDTO.cupom = cupom.nome
+        await this.pedidoService.alterarPedido({ ...alterarPedidoDTO, usuarioId: dto.usuarioId });
+        return {msg:"cupom ativo."}
+    }
+
+
 
 }

@@ -14,6 +14,7 @@ import { CupomEntity } from "../cupom/cupom.entity";
     imports:[EnderecoModule,TypeOrmModule.forFeature([PedidoEntity,ProdutoEntity,IngredientesEntity,PedidoItensEntity,EnderecoEntity,CupomEntity])],
     controllers:[PedidoController],
     providers:[PedidoService],
+    exports:[PedidoService]
 })
 export class PedidoModule{
 
