@@ -85,7 +85,7 @@ export class PedidoService {
         const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + ((item.valor + item.valorAdicionais) * item.quantidade) }, 0)
         if (Object.keys(pedido_carrinho.endereco).length == 0) {// se não tem o endereço adiciona o mais relevante...
             const endereco = await this.enderecoService.buscarEnderecoFavoritoOuMaisRelevante({ usuarioId: itensDoCarrinhoDTO.usuarioId })
-            pedido_carrinho.endereco = endereco as enderecoPedido;
+            if (endereco) pedido_carrinho.endereco = endereco as enderecoPedido;
             await this.pedidoRepository.save(pedido_carrinho);
         }
         return { ...pedido_carrinho, valorTotalPedido: pedido_valorTotal };
