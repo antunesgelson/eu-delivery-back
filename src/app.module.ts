@@ -15,6 +15,7 @@ import { EnderecoModule } from './modulos/endereco/endereco.module';
 import { s3Module } from './modulos/s3/s3.module';
 import { PedidoModule } from './modulos/pedido/pedido.module';
 import { CupomModule } from './modulos/cupom/cupom.module';
+import { ConfiguracaoModule } from './modulos/configuracao/configuracao.module';
 
 
 @Module({
@@ -30,6 +31,7 @@ import { CupomModule } from './modulos/cupom/cupom.module';
     EnderecoModule,
     CupomModule,
     PedidoModule,
+    ConfiguracaoModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(databaseConfig()),
   ],
