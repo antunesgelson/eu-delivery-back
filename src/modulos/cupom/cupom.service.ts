@@ -50,7 +50,10 @@ export class CupomService {
         if ('publico' in dto) { where.listaPublica = dto.publico };
         if ('status' in dto) { where.status = dto.status };
         if ('nome' in dto) { where.nome = Like('%' + dto.nome + '%') };
-        return this.cupomRepository.find({ where: where });
+        const cupoms = await this.cupomRepository.find({ where: where });
+        cupoms.map((item)=>{if(item.validade == '0NaN-aN-aN') {item.validade = ""}})
+        //console.log(cupoms)
+        return cupoms
     }
 
 
@@ -93,7 +96,7 @@ export class CupomService {
         let alterarPedidoDTO = new AlterarEnderecoDataDeEntregaDTO()
         alterarPedidoDTO.cupom = cupom.nome
         await this.pedidoService.alterarPedido({ ...alterarPedidoDTO, usuarioId: dto.usuarioId });
-        return {msg:"cupom ativo."}
+        return { msg: "cupom ativo." }
     }
 
 
