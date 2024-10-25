@@ -30,7 +30,7 @@ export class ProdutoEntity {
   }[] = [];
 
   @Column()
-  desconto: number;
+  valorPromocional: number;
 
   @Column({ default: true })
   status: boolean
