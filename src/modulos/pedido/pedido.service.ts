@@ -178,11 +178,8 @@ export class PedidoService {
                 return undefined;
             })
             .catch(() => undefined);
-
         intervaloDeEntrega ??= 30 //caso não tenha um valor definido deve atribuir o valor 30.
-     
         const listaHorariosDisponiveis: { data: Date, livre: boolean }[] = [];
-
         let horariosResult = []
         //aqui gera todos horarios disponiveis agora tem que verificar com os que já estão em uso..    
         let horarioAtendimento = await this.configuracaoService.getConfig({ chave: 'horarioAtendimento', isAdmin: true }).then((value) => JSON.parse(value.valor)).catch(() => undefined);
@@ -199,17 +196,14 @@ export class PedidoService {
             }
             horariosResult = intervalos.map((item)=>{return {"horario":item,disponivel:true}})
         }
-
         for(const pedido of pedidos){
             let horarioPedido = `${pedido.dataEntrega.getHours().toString().padStart(2,'0')}:${pedido.dataEntrega.getMinutes().toString().padStart(2,'0')}`
             for(const compararHorarios of horariosResult){
                 if(compararHorarios.horario == horarioPedido){
-                    compararHorarios.disponiveis = false;
+                    compararHorarios.disponivel = false;
                 }
             }
         }
-
-
         return horariosResult;
     }
 
