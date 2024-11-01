@@ -14,28 +14,28 @@ export class PedidoController {
         return this.pedidoService.alterarPedido({...dto, usuarioId:request.user.sub});
     } 
 
-    @Post('/carrinho')
+    @Post('carrinho')
     async adicionarItemAoCarrinho(@Body() pedidoDTO:AdicionarItemAoCarrinhoDTO, @Req() request) {
         const pedido = {...pedidoDTO, clienteId:request.user.sub}
         return this.pedidoService.adicionarItemAoCarrinho(pedido)
     }
 
     //lista todos itens que estão no carrinho.
-    @Get('/carrinho')
+    @Get('carrinho')
     async itensDoCarrinho(@Req() request){
         return this.pedidoService.itensDoCarrinho({usuarioId:request.user.sub})
     }
 
 
 
-    @Put('/carrinho')
+    @Put('carrinho')
     async editarQuantidadeDeItensNoCarrinho(@Body() dadosDTO, @Req() request) {
         const item ={...dadosDTO, usuarioId:request.user.sub};
         return this.pedidoService.editarQuantidadeDeItensNoCarrinho(item);
     }
 
 
-    @Delete('/carrinho/item/:itemId')
+    @Delete('carrinho/item/:itemId')
     async removerItemDoCarrinho(@Param('itemId', ParseIntPipe) itemId: number, @Req() request) {
         const item ={pedidoItemId:itemId, usuarioId:request.user.sub};
         return this.pedidoService.removerItemDoCarrinho(item);
@@ -46,10 +46,23 @@ export class PedidoController {
         return this.pedidoService.buscarUltimosPedidos({usuarioId:request.user.sub})
     }
 
+    @Get('cliente/finalizar')
+    async finalizarPedido(){
+        return this.pedidoService.finalizarPedido();
+    }
+
+    @Get('horarios/:data')
+    async horariosDisponiveis(@Param() dto){
+        return this.pedidoService.horariosDisponiveis(dto);
+    }
 
     @Get(':pedidoId')
     async buscarPedidoPorId(@Param() dto:BuscarPedidoPorIdDTO,@Req() request) {
         return this.pedidoService.buscarPedidoPorId({...dto, usuarioId:request.user.sub})
     }
+
+    
+
+    
 
 }

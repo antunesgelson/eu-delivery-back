@@ -9,7 +9,7 @@ export class ConfiguracaoEntity{
     @Column()
     chave:string
 
-    @Column()
+    @Column({type:'text'})
     valor:string
 
     @Column()

@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { enderecoPedido, PedidoEntity, StatusPedidoEnum } from "./pedido.entity";
-import { In, Not, Repository } from "typeorm";
+import { Between, In, Like, Not, Repository } from "typeorm";
 import { ProdutoEntity } from "../produto/produtos.entity";
 import { IngredientesEntity } from "../ingrediente/ingredientes.entity";
 import { PedidoItensEntity } from "./pedidoItens.entity";
@@ -14,6 +14,7 @@ import { EnderecoEntity } from "../endereco/endereco.entity";
 import { plainToClass, plainToInstance } from "class-transformer";
 import { PedidoDto } from "./dto/pedido.dto";
 import { CupomEntity } from "../cupom/cupom.entity";
+import { ConfiguracaoService } from "../configuracao/configuracao.service";
 
 @Injectable()
 export class PedidoService {
@@ -25,8 +26,8 @@ export class PedidoService {
         @InjectRepository(PedidoItensEntity) private pedidoItensRepository: Repository<PedidoItensEntity>,
         @InjectRepository(EnderecoEntity) private enderecoRepository: Repository<EnderecoEntity>,
         @InjectRepository(CupomEntity) private cupomRepository: Repository<CupomEntity>,
-        private readonly enderecoService: EnderecoService
-
+        private readonly enderecoService: EnderecoService,
+        private readonly configuracaoService: ConfiguracaoService
     ) { }
 
     async adicionarItemAoCarrinho(pedido: AdicionarItemAoCarrinhoDTO & { clienteId: any }) {
@@ -109,6 +110,11 @@ export class PedidoService {
                 pedido_carrinho.cupomId = '';
             }
         }
+
+        //Verificando se existe e deixando apenas ou a data ou o periodo.
+        if(dto.periodoEntrega && pedido_carrinho.dataEntrega){pedido_carrinho.dataEntrega = null;}
+        if(dto.dataEntrega && pedido_carrinho.periodoEntrega){pedido_carrinho.periodoEntrega = null;}
+
         await this.pedidoRepository.save(pedido_carrinho);
         if (dto.cupom && pedido_carrinho.cupomId == "") throw new ConflictException('Cupom não encontrado');
         return plainToInstance(PedidoDto, pedido_carrinho);
@@ -149,4 +155,79 @@ export class PedidoService {
         const pedido_valorTotal = pedido_carrinho.itens.reduce((total, item) => { return total + ((item.valor + item.valorAdicionais) * item.quantidade) }, 0)
         return { ...pedido_carrinho, valorTotalPedido: pedido_valorTotal };
     }
+
+    async horariosDisponiveis(dto) {
+        //1) buscar todos pedidos que tem status: pago, em preparação, aguardando pagamento do dia passado como parametro.
+        //2) verificar se o sistem tem configurado o intervaloDeEntrega se não deixa o padrão de 30 min.
+        //3) verificar se o dia selecionado é um dia que o emporio abre. se não for retornar um array vazio de horarios.. 
+        //4) gerar um array de horarios do horario de abertura até o fechamento/intervalos, cuidado apra não passar os horarios..
+        //5) depois de gerar o array, verificar os horarios que estão ocupados e macar-los 
+        //recebe um dia e retorna os horarios disponiveis na quele dia.. 
+        const dataInicio = new Date(`${dto.data}T00:00:00-03:00`);
+        const dataFim = new Date(`${dto.data}T23:59:59-03:00`);
+        //1)
+        const pedidos = await this.pedidoRepository.find({ where: { dataEntrega: Between(dataInicio, dataFim) } })
+        //2)
+        let intervaloDeEntrega = await this.configuracaoService.getConfig({ chave: 'intervaloDeEntrega', isAdmin: true })
+            .then((value) => {
+                if (value && value.valor !== undefined) {
+                    let result = parseInt(value.valor, 10);
+                    if (result.toString() == 'NaN') return undefined
+                    return result;
+                }
+                return undefined;
+            })
+            .catch(() => undefined);
+
+        intervaloDeEntrega ??= 30 //caso não tenha um valor definido deve atribuir o valor 30.
+     
+        const listaHorariosDisponiveis: { data: Date, livre: boolean }[] = [];
+
+        let horariosResult = []
+        //aqui gera todos horarios disponiveis agora tem que verificar com os que já estão em uso..    
+        let horarioAtendimento = await this.configuracaoService.getConfig({ chave: 'horarioAtendimento', isAdmin: true }).then((value) => JSON.parse(value.valor)).catch(() => undefined);
+        const diasDaSemana = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
+        horarioAtendimento = horarioAtendimento[diasDaSemana[dataInicio.getDay()]]
+        console.log(horarioAtendimento)
+        if (horarioAtendimento.abertura && horarioAtendimento.abertura != '') {
+            let intervalos = []
+            if (horarioAtendimento.inicio_intervalo && horarioAtendimento.inicio_intervalo != "") {
+                intervalos.push(...this.gerarArrayHorarios(horarioAtendimento.abertura, horarioAtendimento.inicio_intervalo, intervaloDeEntrega))
+                intervalos.push(...this.gerarArrayHorarios(horarioAtendimento.fim_intervalo, horarioAtendimento.fechamento, intervaloDeEntrega))
+            } else {
+                intervalos = this.gerarArrayHorarios(horarioAtendimento.abertura, horarioAtendimento.fechamento, intervaloDeEntrega)
+            }
+            horariosResult = intervalos.map((item)=>{return {"horario":item,disponivel:true}})
+        }
+
+        for(const pedido of pedidos){
+            let horarioPedido = `${pedido.dataEntrega.getHours().toString().padStart(2,'0')}:${pedido.dataEntrega.getMinutes().toString().padStart(2,'0')}`
+            for(const compararHorarios of horariosResult){
+                if(compararHorarios.horario == horarioPedido){
+                    compararHorarios.disponiveis = false;
+                }
+            }
+        }
+
+
+        return horariosResult;
+    }
+
+    async finalizarPedido() {
+        return 'finalizar pedido';
+    }
+
+    private gerarArrayHorarios(horaInicio, horaFim, intervaloMinutos) {
+        let horarios = [];
+        let inicio = new Date(`1970-01-01T${horaInicio}:00`);
+        let fim = new Date(`1970-01-01T${horaFim}:00`);
+        while (inicio.getTime() + intervaloMinutos * 60000 <= fim.getTime()) {
+            let horas = inicio.getHours().toString().padStart(2, '0');
+            let minutos = inicio.getMinutes().toString().padStart(2, '0');
+            horarios.push(`${horas}:${minutos}`);
+            inicio.setMinutes(inicio.getMinutes() + intervaloMinutos);
+        }
+        return horarios;
+    }
+
 }

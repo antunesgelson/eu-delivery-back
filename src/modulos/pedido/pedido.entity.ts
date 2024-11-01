@@ -12,6 +12,12 @@ export enum StatusPedidoEnum {
     NO_CARRINHO = "no carrinho"
 }
 
+export enum PeriodoEntregaEnum {
+    MANHA = "manhã",
+    TARDE = "tarde",
+    NOITE = "noite"
+}
+
 export interface enderecoPedido {
     favorite: boolean;
     apelido: string;
@@ -47,6 +53,9 @@ export class PedidoEntity {
 
     @Column({ type: "timestamp",nullable: true })
     dataEntrega: Date
+
+    @Column({type:"enum",enum:PeriodoEntregaEnum,nullable: true })
+    periodoEntrega: PeriodoEntregaEnum
 
     @Column({ type: "enum", enum: StatusPedidoEnum, default: StatusPedidoEnum.AGUARDANDO_PAGAMENTO })
     status: StatusPedidoEnum
