@@ -1,7 +1,19 @@
 import { Type } from "class-transformer"
-import { IsDate, IsEnum, IsNumber, IsOptional, IsString } from "class-validator"
+import { IsDate, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator"
 import { PeriodoEntregaEnum } from "../pedido.entity"
 import { UmOuOutroValidator } from "src/shared/validator/umOuOutro.validator"
+
+
+class PeriodoEntregaDTO{
+
+    @IsEnum(PeriodoEntregaEnum)
+    periodo:PeriodoEntregaEnum;
+
+    @IsDate()
+    @Type(()=>Date)
+    data:Date;
+}
+
 
 export class AlterarEnderecoDataDeEntregaDTO{
     @IsOptional()
@@ -19,9 +31,10 @@ export class AlterarEnderecoDataDeEntregaDTO{
     dataEntrega:Date
 
     @IsOptional()
-    @IsEnum(PeriodoEntregaEnum)
+    @Type(()=>PeriodoEntregaDTO)
+    @ValidateNested()
     @UmOuOutroValidator('dataEntrega',{message:'A dataEntrega ou periodoEntrega deve ser preenchida, mas não ambas.'})
-    periodoEntrega:PeriodoEntregaEnum
+    periodoEntrega:PeriodoEntregaDTO
 
 
     @IsOptional()

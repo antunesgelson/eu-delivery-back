@@ -16,6 +16,7 @@ import { s3Module } from './modulos/s3/s3.module';
 import { PedidoModule } from './modulos/pedido/pedido.module';
 import { CupomModule } from './modulos/cupom/cupom.module';
 import { ConfiguracaoModule } from './modulos/configuracao/configuracao.module';
+import { MercadoPagoCheckoutProModule } from './modulos/pagamento/mercadoPagoCheckoutPro/mercadoPagoCheckoutPro.module';
 
 
 @Module({
@@ -31,6 +32,7 @@ import { ConfiguracaoModule } from './modulos/configuracao/configuracao.module';
     EnderecoModule,
     CupomModule,
     PedidoModule,
+    MercadoPagoCheckoutProModule,
     ConfiguracaoModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(databaseConfig()),

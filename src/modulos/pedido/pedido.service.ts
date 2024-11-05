@@ -111,10 +111,19 @@ export class PedidoService {
             }
         }
 
-        //Verificando se existe e deixando apenas ou a data ou o periodo.
-        if(dto.periodoEntrega && pedido_carrinho.dataEntrega){pedido_carrinho.dataEntrega = null;}
-        if(dto.dataEntrega && pedido_carrinho.periodoEntrega){pedido_carrinho.periodoEntrega = null;}
 
+
+       
+        //Verificando se existe e deixando apenas ou a data ou o periodo.
+        if (dto.periodoEntrega) {
+            console.log('............')
+            pedido_carrinho.dataEntrega = dto.periodoEntrega.data;
+            pedido_carrinho.periodoEntrega = dto.periodoEntrega.periodo;
+        }
+        if (dto.dataEntrega && pedido_carrinho.periodoEntrega) { pedido_carrinho.periodoEntrega = null; }
+
+
+       console.log(pedido_carrinho)
         await this.pedidoRepository.save(pedido_carrinho);
         if (dto.cupom && pedido_carrinho.cupomId == "") throw new ConflictException('Cupom não encontrado');
         return plainToInstance(PedidoDto, pedido_carrinho);
@@ -194,12 +203,12 @@ export class PedidoService {
             } else {
                 intervalos = this.gerarArrayHorarios(horarioAtendimento.abertura, horarioAtendimento.fechamento, intervaloDeEntrega)
             }
-            horariosResult = intervalos.map((item)=>{return {"horario":item,disponivel:true}})
+            horariosResult = intervalos.map((item) => { return { "horario": item, disponivel: true } })
         }
-        for(const pedido of pedidos){
-            let horarioPedido = `${pedido.dataEntrega.getHours().toString().padStart(2,'0')}:${pedido.dataEntrega.getMinutes().toString().padStart(2,'0')}`
-            for(const compararHorarios of horariosResult){
-                if(compararHorarios.horario == horarioPedido){
+        for (const pedido of pedidos) {
+            let horarioPedido = `${pedido.dataEntrega.getHours().toString().padStart(2, '0')}:${pedido.dataEntrega.getMinutes().toString().padStart(2, '0')}`
+            for (const compararHorarios of horariosResult) {
+                if (compararHorarios.horario == horarioPedido) {
                     compararHorarios.disponivel = false;
                 }
             }

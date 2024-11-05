@@ -12,6 +12,7 @@ export function UmOuOutroValidator(property: string, validationOptions?: Validat
                 validate(value: any, args: ValidationArguments) {
                     const [relatedPropertyName] = args.constraints;
                     const relatedValue = (args.object as any)[relatedPropertyName];
+                 
                     return (!!value && !relatedValue) || (!value && !!relatedValue);
                 },
                 defaultMessage(args: ValidationArguments) {

@@ -51,7 +51,7 @@ export class PedidoEntity {
     @Column({type:'float', default:0})
     descontoCupom:number
 
-    @Column({ type: "timestamp",nullable: true })
+    @Column({ type: "datetime",nullable: true })
     dataEntrega: Date
 
     @Column({type:"enum",enum:PeriodoEntregaEnum,nullable: true })
