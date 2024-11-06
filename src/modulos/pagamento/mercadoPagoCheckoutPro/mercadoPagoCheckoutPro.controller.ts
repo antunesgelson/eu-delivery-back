@@ -10,11 +10,8 @@ export class MercadoPagoCheckoutProController{
 
     @IsPublic()
     @Post('webhook')
-    async webhook(@Body() body,@Query() query){
-        console.log('body',body);
-        console.log('query',query);
-        console.log(query['data.id'])
-        return 'ok'
+    async webhook(@Body() dto){
+        //return this.mercadopago.atualizarPedido(dto);
     }
 
     @IsPublic()
