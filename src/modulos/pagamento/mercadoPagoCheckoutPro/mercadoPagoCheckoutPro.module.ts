@@ -1,10 +1,12 @@
 import { Module } from "@nestjs/common";
 import { MercadoPagoCheckoutProController } from "./mercadoPagoCheckoutPro.controller";
 import { MercadoPagoCheckoutProService } from "./mercadoPagoCheckoutPro.service";
+import { ConfiguracaoModule } from "src/modulos/configuracao/configuracao.module";
 
 @Module({
     controllers: [MercadoPagoCheckoutProController],
     providers: [MercadoPagoCheckoutProService],
+    imports:[ConfiguracaoModule]
 })
 export class MercadoPagoCheckoutProModule {
     constructor() {
