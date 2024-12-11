@@ -1,6 +1,7 @@
 import { IsString, IsNumber, IsArray, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 
+
 class Item {
     @IsString()
     title: string;
@@ -18,12 +19,12 @@ class Item {
     id: string;
 }
 
-export class MpCkPCriarPedidoDTO {
+export class CriarPedidoDTO {
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => Item)
     itens: Item[];
 
-    @IsNumber()
-    external_reference: number;
+    @IsString()
+    external_reference: string;
 }

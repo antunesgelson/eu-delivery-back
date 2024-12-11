@@ -1,0 +1,1 @@
+auto 5000 ifnot $connected {reconnect | wait 2000 | openbeltitem | wait 2000 | openbpitem | end}

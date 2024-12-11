@@ -9,7 +9,7 @@ export default function databaseConfig(): TypeOrmModuleOptions {
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DB,
     entities: [__dirname + '/../**/*.entity{.js,.ts}'],
-    synchronize: true,
+    synchronize: false,
     timezone: '-03:00', // Definindo o fuso horário de São Paulo
   };
 }

@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { StatusPedidoEnum } from "../pedido/pedido.entity";
 
-enum statusPagamento {
+
+export enum statusPagamento {
     APROVADO="APROVADO",
     PENDENTE="PENDENTE",
     CANCELADO="CANCELADO"
@@ -18,8 +18,8 @@ export class PagamentoEntity{
     transactionId:string;
 
     //valor totoal da transação
-    @Column()
-    valorPago:number;
+    @Column({type:"float"})
+    valor:number;
 
     //taxa cobrada pelo gateway de pagamento.
     @Column()
@@ -33,10 +33,14 @@ export class PagamentoEntity{
     @Column()
     referenciaId:string;
 
+    //adicionar metadados, como email, cpf.. entre outros.. 
+    @Column({type:"text", default:"{}"})
+    metadados:string
+
     //Esse campo se refere aos logs das transações, cada vez que o status muda deve ser salvo um novo objeto dentro do log
     // o objeto pode ter o proprio objeto recebido pelo gatway.
     @Column({type:"text",default:"[]"})
-    log:string;
+    logs:string;
 
     @UpdateDateColumn()
     updated_at:Date;

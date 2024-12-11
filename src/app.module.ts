@@ -17,6 +17,7 @@ import { PedidoModule } from './modulos/pedido/pedido.module';
 import { CupomModule } from './modulos/cupom/cupom.module';
 import { ConfiguracaoModule } from './modulos/configuracao/configuracao.module';
 import { MercadoPagoCheckoutProModule } from './modulos/pagamento/mercadoPagoCheckoutPro/mercadoPagoCheckoutPro.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 
 @Module({
@@ -29,11 +30,12 @@ import { MercadoPagoCheckoutProModule } from './modulos/pagamento/mercadoPagoChe
     AdicinaisModule,
     SharedModule,
     s3Module,
+    MercadoPagoCheckoutProModule,
     EnderecoModule,
     CupomModule,
     PedidoModule,
-    MercadoPagoCheckoutProModule,
     ConfiguracaoModule,
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(databaseConfig()),
   ],
