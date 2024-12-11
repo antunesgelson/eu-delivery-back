@@ -11,6 +11,16 @@ export class ConfiguracaoService {
         @InjectRepository(ConfiguracaoEntity) private configuracaoRepository: Repository<ConfiguracaoEntity>
     ) { }
 
+    async editarOuCriarConfig(dto: ConfiguracaoDTO) {
+        dto.chave = dto.chave.toUpperCase();
+        const config = await this.configuracaoRepository.findOne({ where: { chave: dto.chave } })
+        if (config) {
+            Object.assign(config, dto)
+            return this.configuracaoRepository.save(config);
+        }
+        return this.configuracaoRepository.save(dto);
+    }
+
     async setConfig(dto: ConfiguracaoDTO) {
         dto.chave = dto.chave.toUpperCase();
         const isExist = await this.configuracaoRepository.findOne({ where: { chave: dto.chave } })
@@ -36,4 +46,15 @@ export class ConfiguracaoService {
         if (!config) throw new NotFoundException('Configuração não encontrada.')
         return config;
     }
+
+
+    async getAllConfig(dto: { isAdmin: boolean }) {
+        let where: any
+        where = {};
+        if (!dto.isAdmin) where.privado = false
+        const config = await this.configuracaoRepository.find({ where: where })
+        return config;
+    }
+
+
 }

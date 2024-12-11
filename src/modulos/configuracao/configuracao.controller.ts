@@ -7,7 +7,6 @@ import { IsPublic } from "../auth/decorators/isPublic.decorator";
 export class ConfiguracaoController{
 
     constructor(private configService:ConfiguracaoService){
-
     }
     
     @Post()
@@ -16,11 +15,25 @@ export class ConfiguracaoController{
         return this.configService.setConfig(dto)
     }
 
+    @Post('editaroucriar')
+    @SetMetadata('isAdmin',true)
+    async editarOuCriarConfig(@Body() dto:ConfiguracaoDTO){
+        return this.configService.setConfig(dto)
+    }
 
     @Put()
     @SetMetadata('isAdmin',true)
     async editConfig(@Body() dto:ConfiguracaoDTO){
         return this.configService.editConfig(dto)
+    }
+
+    @IsPublic()
+    @Get()
+    async getAllConfig(@Param() dto,@Req() req){
+        const usuario = req.user;
+        let isAdmin = false
+        if(usuario) isAdmin = usuario.isAdmin
+        return this.configService.getAllConfig({isAdmin:isAdmin}) 
     }
 
     @IsPublic()
@@ -30,6 +43,10 @@ export class ConfiguracaoController{
         let isAdmin = false
         if(usuario) isAdmin = usuario.isAdmin
         return this.configService.getConfig({chave:dto.chave,isAdmin:isAdmin})
-        
     }
+
+
+
+
+    
 }
