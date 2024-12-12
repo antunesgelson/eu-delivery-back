@@ -18,7 +18,7 @@ export class ConfiguracaoController{
     @Post('editaroucriar')
     @SetMetadata('isAdmin',true)
     async editarOuCriarConfig(@Body() dto:ConfiguracaoDTO){
-        return this.configService.setConfig(dto)
+        return this.configService.editarOuCriarConfig(dto)
     }
 
     @Put()
