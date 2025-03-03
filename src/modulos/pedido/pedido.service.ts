@@ -216,7 +216,7 @@ export class PedidoService {
        
         if (horarioAtendimento.abertura && horarioAtendimento.abertura != '') {
             let intervalos = []
-            if (horarioAtendimento.inicio_intervalo && horarioAtendimento.inicio_intervalo != "") {
+            if (horarioAtendimento.inicio_intervalo && horarioAtendimento.inicio_intervalo != "" && horarioAtendimento.inicio_intervalo != "00:00") {
 
                 intervalos.push(...this.gerarArrayHorarios(horarioAtendimento.abertura, horarioAtendimento.inicio_intervalo, intervaloDeEntrega))
                 intervalos.push(...this.gerarArrayHorarios(horarioAtendimento.fim_intervalo, horarioAtendimento.fechamento, intervaloDeEntrega))
