@@ -31,6 +31,9 @@ export class UsuarioEntiy {
     @OneToMany(()=>PedidoEntity,(pedidos)=>pedidos.cliente)
     pedidos:PedidoEntity[]
 
+    @Column({type:"float",default:0.00})
+    cashback:number;
+    
     @CreateDateColumn()
     created_at?: Date;
 

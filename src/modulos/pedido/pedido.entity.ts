@@ -42,8 +42,8 @@ export class PedidoEntity {
 
     //cupom //cupom utilizado
 
-    @Column({type:'float', default:0})
-    cashBack:number
+    @Column({type:'boolean', default:0})
+    cashBack:boolean
 
     @Column({default:null})
     cupomId:string

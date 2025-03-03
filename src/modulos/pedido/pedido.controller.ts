@@ -47,8 +47,8 @@ export class PedidoController {
     }
 
     @Get('cliente/finalizar')
-    async finalizarPedido(){
-        return this.pedidoService.finalizarPedido();
+    async finalizarPedido(@Req() req){
+        return this.pedidoService.finalizarPedido({usuarioId:req.user.sub});
     }
 
     @Get('horarios/:data')

@@ -15,6 +15,7 @@ import { plainToClass, plainToInstance } from "class-transformer";
 import { PedidoDto } from "./dto/pedido.dto";
 import { CupomEntity } from "../cupom/cupom.entity";
 import { ConfiguracaoService } from "../configuracao/configuracao.service";
+import { error } from "console";
 
 @Injectable()
 export class PedidoService {
@@ -94,6 +95,10 @@ export class PedidoService {
 
 
     async alterarPedido(dto: AlterarEnderecoDataDeEntregaDTO & { usuarioId: number }) {
+
+        //se o cashback for == true
+        //if()
+
         const pedido_carrinho = await this.pedidoRepository.findOne({ where: { cliente: { id: dto.usuarioId }, status: StatusPedidoEnum.NO_CARRINHO } })
         if (!pedido_carrinho) throw new NotFoundException('Pedido não encontrado.')
         if (dto.enderecoId) {
@@ -113,7 +118,7 @@ export class PedidoService {
 
 
 
-       
+
         //Verificando se existe e deixando apenas ou a data ou o periodo.
         if (dto.periodoEntrega) {
             console.log('............')
@@ -123,7 +128,7 @@ export class PedidoService {
         if (dto.dataEntrega && pedido_carrinho.periodoEntrega) { pedido_carrinho.periodoEntrega = null; }
 
 
-       console.log(pedido_carrinho)
+        console.log(pedido_carrinho)
         await this.pedidoRepository.save(pedido_carrinho);
         if (dto.cupom && pedido_carrinho.cupomId == "") throw new ConflictException('Cupom não encontrado');
         return plainToInstance(PedidoDto, pedido_carrinho);
@@ -172,8 +177,16 @@ export class PedidoService {
         //4) gerar um array de horarios do horario de abertura até o fechamento/intervalos, cuidado apra não passar os horarios..
         //5) depois de gerar o array, verificar os horarios que estão ocupados e macar-los 
         //recebe um dia e retorna os horarios disponiveis na quele dia.. 
+
+        
+        const dataDeHoje = new Date();
         const dataInicio = new Date(`${dto.data}T00:00:00-03:00`);
         const dataFim = new Date(`${dto.data}T23:59:59-03:00`);
+
+        //verificar se a data não está no passado.
+        if(dataDeHoje > dataInicio) throw new ConflictException('A data de inicio não pode ser menor que a data atual.')
+
+
         //1)
         const pedidos = await this.pedidoRepository.find({ where: { dataEntrega: Between(dataInicio, dataFim) } })
         //2)
@@ -187,17 +200,24 @@ export class PedidoService {
                 return undefined;
             })
             .catch(() => undefined);
+
+
         intervaloDeEntrega ??= 30 //caso não tenha um valor definido deve atribuir o valor 30.
+        if(intervaloDeEntrega == 0) intervaloDeEntrega = 30;
+
+
+
         const listaHorariosDisponiveis: { data: Date, livre: boolean }[] = [];
         let horariosResult = []
         //aqui gera todos horarios disponiveis agora tem que verificar com os que já estão em uso..    
         let horarioAtendimento = await this.configuracaoService.getConfig({ chave: 'horarioAtendimento', isAdmin: true }).then((value) => JSON.parse(value.valor)).catch(() => undefined);
         const diasDaSemana = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
         horarioAtendimento = horarioAtendimento[diasDaSemana[dataInicio.getDay()]]
-        console.log(horarioAtendimento)
+       
         if (horarioAtendimento.abertura && horarioAtendimento.abertura != '') {
             let intervalos = []
             if (horarioAtendimento.inicio_intervalo && horarioAtendimento.inicio_intervalo != "") {
+
                 intervalos.push(...this.gerarArrayHorarios(horarioAtendimento.abertura, horarioAtendimento.inicio_intervalo, intervaloDeEntrega))
                 intervalos.push(...this.gerarArrayHorarios(horarioAtendimento.fim_intervalo, horarioAtendimento.fechamento, intervaloDeEntrega))
             } else {
@@ -216,18 +236,41 @@ export class PedidoService {
         return horariosResult;
     }
 
-    async finalizarPedido() {
+    async finalizarPedido(dto:{usuarioId:number}) {
+
+        //alterar, cashback do pedido tem que ser true ou false.
+
+
+
+        //1)buscar pedido no carrinho.
+        //2)verificar se está usando cupom ou vai querer  usar o cachbach
+        //2.1) se for cupom verificar se atende os requisitos
+        //2.2) se for cashback diminuir 
+        // mudar status para aguardando pagamento "AGUARDANDO_PAGAMENTO"
+        // descontar o saldo do cashback 
+        //Só deve ganhar o cashback depois do pagamento efetuado
+
+
+
         return 'finalizar pedido';
     }
+
+    
+
 
     private gerarArrayHorarios(horaInicio, horaFim, intervaloMinutos) {
         let horarios = [];
         let inicio = new Date(`1970-01-01T${horaInicio}:00`);
         let fim = new Date(`1970-01-01T${horaFim}:00`);
+
+
+
         while (inicio.getTime() + intervaloMinutos * 60000 <= fim.getTime()) {
+
             let horas = inicio.getHours().toString().padStart(2, '0');
             let minutos = inicio.getMinutes().toString().padStart(2, '0');
             horarios.push(`${horas}:${minutos}`);
+         
             inicio.setMinutes(inicio.getMinutes() + intervaloMinutos);
         }
         return horarios;
