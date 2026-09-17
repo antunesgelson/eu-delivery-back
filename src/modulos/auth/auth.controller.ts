@@ -1,39 +1,59 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
-import { AdicionarUsuarioDTO } from "../usuario/dto/adicionarUsuario.dto";
-import { GetCodeDTO } from "./dto/getCode.dto";
-import { VerifyCodeDTO } from "./dto/verifyCode.dto";
-import { GetCodeService } from "./services/getCode.service";
-import { VerifyCodeService } from "./services/verifyCode.service";
-import { IsPublic } from "./decorators/isPublic.decorator";
-import { AuthUsuarioService } from "./services/authUsuario.service";
-import { UsuarioService } from "../usuario/usuario.service";
-
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { Publico } from '../../common/security';
+import { AuthService } from './auth.service';
+import {
+  LoginDto,
+  RefreshDto,
+  SolicitarCodigoDto,
+  VerificarCodigoDto,
+  EsqueciSenhaDto,
+  RedefinirSenhaDto,
+  GoogleDto,
+} from './auth.dto';
 @Controller('auth')
 export class AuthController {
-  constructor(private usuarioService: UsuarioService,
-    private getCodeService: GetCodeService,
-    private verifyCodeService: VerifyCodeService,
-    private authUsuarioService:AuthUsuarioService
-  ) { }
-
-  @IsPublic()
+  constructor(private auth: AuthService) {}
+  @Publico()
+  @Throttle({ default: { limit: 8, ttl: 60000 } })
+  @Post('login')
+  login(@Body() d: LoginDto) {
+    return this.auth.login(d.email, d.senha);
+  }
+  @Publico() @Post('refresh') refresh(@Body() d: RefreshDto) {
+    return this.auth.refresh(d.refreshToken);
+  }
+  @Post('logout') sair(@Req() r: any) {
+    return this.auth.sair(r.sessionId);
+  }
+  @Get('me') me(@Req() r: any) {
+    return this.auth.usuarioPublico(r.user);
+  }
+  @Publico()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('wp')
-  async getCode(@Body() getCodeDTO: GetCodeDTO) {
-    return this.getCodeService.exec(getCodeDTO);
+  solicitar(@Body() d: SolicitarCodigoDto) {
+    return this.auth.solicitar(d.tel);
   }
-
-  @IsPublic()
-  @Post('entraroucadastrar')
-  async cadastrar(@Body() dadosUsuario: AdicionarUsuarioDTO) {
-    const usuario = await this.usuarioService.adicionar(dadosUsuario);
-    return this.authUsuarioService.exec(usuario);
-
-  }
-
-  @IsPublic()
+  @Publico()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('verify')
-  async verifyCode(@Body() code: VerifyCodeDTO) {
-    return await this.verifyCodeService.exec(code);
+  verificar(@Body() d: VerificarCodigoDto) {
+    return this.auth.verificar(d);
   }
-
+  @Publico()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('esqueci-senha')
+  esqueci(@Body() d: EsqueciSenhaDto) {
+    return this.auth.esqueci(d.email);
+  }
+  @Publico()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('redefinir-senha')
+  redefinir(@Body() d: RedefinirSenhaDto) {
+    return this.auth.redefinir(d);
+  }
+  @Publico() @Post('google') google(@Body() d: GoogleDto) {
+    return this.auth.google(d.idToken);
+  }
 }

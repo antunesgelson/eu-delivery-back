@@ -1,38 +1,52 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import databaseConfig from './config/database.config';
-import { AdicinaisModule } from './modulos/adicional/adicionail.module';
-import { AuthModules } from './modulos/auth/auth.modules';
-import { CategoriaModule } from './modulos/categoria/categoria.module';
-import { IngredienteModule } from './modulos/ingrediente/ingrediente.module';
-import { ProdutoModule } from './modulos/produto/produto.module';
-import { UsuarioModule } from './modulos/usuario/usuario.module';
-import { SharedModule } from './shared/shared.module';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './modulos/auth/guards/jwt-auth.guard';
-import { EnderecoModule } from './modulos/endereco/endereco.module';
-import { s3Module } from './modulos/s3/s3.module';
-import { PedidoModule } from './modulos/pedido/pedido.module';
-import { CupomModule } from './modulos/cupom/cupom.module';
-
+import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { opcoesBanco } from './database/data-source';
+import { AcessoGuard } from './common/security';
+import { AuthModule } from './modulos/auth/auth.module';
+import { CatalogoModule } from './modulos/catalogo/catalogo.module';
+import { ClientesModule } from './modulos/clientes/clientes.module';
+import { PedidosModule } from './modulos/pedidos/pedidos.module';
+import { PagamentosModule } from './modulos/pagamentos/pagamentos.module';
 
 @Module({
   imports: [
-    UsuarioModule,
-    AuthModules,
-    CategoriaModule,
-    ProdutoModule,
-    IngredienteModule,
-    AdicinaisModule,
-    SharedModule,
-    s3Module,
-    EnderecoModule,
-    CupomModule,
-    PedidoModule,
-    ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot(databaseConfig()),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: process.env.DOTENV_CONFIG_PATH ?? '.env',
+      validate: (env) => {
+        if (!env.JWT_SECRET || env.JWT_SECRET.length < 32)
+          throw new Error('JWT_SECRET deve conter pelo menos 32 caracteres.');
+        if (
+          env.NODE_ENV === 'production' &&
+          env.AUTH_DELIVERY_MODE === 'development'
+        )
+          throw new Error(
+            'Códigos de desenvolvimento não são permitidos em produção.',
+          );
+        for (const name of ['MYSQL_USER', 'MYSQL_DB'])
+          if (!env[name]) throw new Error(`${name} obrigatório.`);
+        return env;
+      },
+    }),
+    TypeOrmModule.forRootAsync({ useFactory: () => opcoesBanco() }),
+    JwtModule.registerAsync({
+      global: true,
+      useFactory: () => ({ secret: process.env.JWT_SECRET }),
+    }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 240 }]),
+    AuthModule,
+    CatalogoModule,
+    ClientesModule,
+    PedidosModule,
+    PagamentosModule,
   ],
-  providers:[{provide:APP_GUARD, useClass:JwtAuthGuard}]
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AcessoGuard },
+  ],
 })
-export class AppModule { }
+export class AppModule {}
