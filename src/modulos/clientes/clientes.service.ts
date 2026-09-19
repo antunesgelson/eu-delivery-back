@@ -69,6 +69,8 @@ export class ClientesService {
     return e;
   }
   async salvarEndereco(usuarioId: number, d: EnderecoDto, novo = false) {
+    if (!novo && !d.id)
+      throw new BadRequestException('Informe o endereço que deseja editar.');
     return this.db.transaction(async (m) => {
       await m
         .getRepository(Usuario)
@@ -170,17 +172,41 @@ export class ClientesService {
     const builder = this.db
       .getRepository(Usuario)
       .createQueryBuilder('u')
-      .where('u.isAdmin=false');
-    if (q.search)
-      builder.andWhere('(u.nome LIKE :s OR u.tel LIKE :s OR u.email LIKE :s)', {
-        s: `%${q.search}%`,
-      });
+      .where('u.isAdmin=false AND u.ativo=true');
+    const search = q.search?.trim();
+    if (search) {
+      const telefone = /^[+\d\s().-]+$/.test(search)
+        ? search.replace(/\D/g, '')
+        : '';
+      builder.andWhere(
+        '(u.nome LIKE :s OR u.tel LIKE :tel OR u.email LIKE :s)',
+        {
+          s: `%${search}%`,
+          tel: `%${telefone || search}%`,
+        },
+      );
+    }
     const [items, total] = await builder
       .orderBy('u.id', q.order)
       .skip((q.page - 1) * q.limit)
       .take(q.limit)
       .getManyAndCount();
     return { items, total, page: q.page, limit: q.limit };
+  }
+  async clienteDetalhe(id: number) {
+    const cliente = await this.perfil(id);
+    if (cliente.isAdmin || !cliente.ativo)
+      throw new NotFoundException('Cliente não encontrado.');
+    return {
+      id: cliente.id,
+      nome: cliente.nome,
+      tel: cliente.tel,
+      email: cliente.email,
+    };
+  }
+  async enderecosCliente(id: number) {
+    await this.clienteDetalhe(id);
+    return this.enderecos(id);
   }
   async editarCliente(id: number, d: ClienteAdminDto, adminId: number) {
     this.validarPerfil(d);

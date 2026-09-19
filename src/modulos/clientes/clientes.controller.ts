@@ -75,6 +75,16 @@ export class ClientesController {
   @Admin() @Get('admin/clientes') clientesLista(@Query() q: ListaDto) {
     return this.clientes.clientes(q);
   }
+  @Admin() @Get('admin/clientes/:id') clienteDetalhe(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.clientes.clienteDetalhe(id);
+  }
+  @Admin() @Get('admin/clientes/:id/enderecos') clienteEnderecos(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.clientes.enderecosCliente(id);
+  }
   @Admin() @Put('admin/clientes/:id') cliente(
     @Req() r: any,
     @Param('id', ParseIntPipe) id: number,

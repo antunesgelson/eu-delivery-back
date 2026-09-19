@@ -10,6 +10,7 @@ import {
   Categoria,
   Produto,
   Pedido,
+  PedidoItem,
   Estoque,
   BeneficioMovimento,
   Cupom,
@@ -223,6 +224,20 @@ describe('Loja: integração com MySQL e HTTP', () => {
       .send({ cpf: '11111111111' })
       .expect(400);
   });
+  it('preserva a data de nascimento no salvamento e na leitura do perfil', async () => {
+    const saved = await auth(request(app.getHttpServer()).put('/usuario'))
+      .send({ dataDeNascimento: '1996-02-29' })
+      .expect(200);
+    expect(saved.body.dataDeNascimento).toBe('1996-02-29');
+    const read = await auth(
+      request(app.getHttpServer()).get('/usuario'),
+    ).expect(200);
+    expect(read.body.dataDeNascimento).toBe('1996-02-29');
+    const cleared = await auth(request(app.getHttpServer()).put('/usuario'))
+      .send({ dataDeNascimento: null })
+      .expect(200);
+    expect(cleared.body.dataDeNascimento).toBeNull();
+  });
   it('isola endereços e valida CEP atendido e taxa no servidor', async () => {
     const address = (
       await auth(request(app.getHttpServer()).post('/endereco'))
@@ -272,6 +287,114 @@ describe('Loja: integração com MySQL e HTTP', () => {
     await auth(request(app.getHttpServer()).put('/pedido/carrinho'))
       .send({ tipoRecebimento: 'delivery', enderecoId: other.id })
       .expect(400);
+  });
+  it('edita, favorita e exclui somente endereços do titular, exigindo ID na edição', async () => {
+    const payload = {
+      apelido: 'Casa CRUD',
+      rua: 'Rua original',
+      bairro: 'Centro',
+      cep: '88650000',
+      numero: '25',
+    };
+    const first = (
+      await auth(request(app.getHttpServer()).post('/endereco'))
+        .send({ ...payload, favorite: true })
+        .expect(201)
+    ).body;
+    const second = (
+      await auth(request(app.getHttpServer()).post('/endereco'))
+        .send({ ...payload, apelido: 'Trabalho CRUD', favorite: true })
+        .expect(201)
+    ).body;
+    await auth(request(app.getHttpServer()).put('/endereco'))
+      .send({ rua: 'Sem ID' })
+      .expect(400);
+    await auth(request(app.getHttpServer()).put('/endereco'), b)
+      .send({ id: first.id, rua: 'Outro titular' })
+      .expect(404);
+    await auth(
+      request(app.getHttpServer()).delete(`/endereco/${first.id}`),
+      b,
+    ).expect(404);
+    const unchanged = (
+      await auth(
+        request(app.getHttpServer()).get(`/endereco/${first.id}`),
+      ).expect(200)
+    ).body;
+    expect(unchanged.rua).toBe(payload.rua);
+    expect(unchanged.favorite).toBe(false);
+    const changed = (
+      await auth(request(app.getHttpServer()).put('/endereco'))
+        .send({ id: first.id, numero: '88', favorite: true })
+        .expect(200)
+    ).body;
+    expect(changed.numero).toBe('88');
+    expect(changed.rua).toBe(payload.rua);
+    const list = (
+      await auth(request(app.getHttpServer()).get('/endereco/todos')).expect(
+        200,
+      )
+    ).body;
+    expect(
+      list.filter((address) => address.favorite).map((address) => address.id),
+    ).toEqual([first.id]);
+    await auth(
+      request(app.getHttpServer()).delete(`/endereco/${first.id}`),
+    ).expect(200);
+    await auth(
+      request(app.getHttpServer()).get(`/endereco/${first.id}`),
+    ).expect(404);
+    await auth(request(app.getHttpServer()).put('/endereco'))
+      .send({ id: first.id, numero: '99' })
+      .expect(404);
+    await auth(
+      request(app.getHttpServer()).delete(`/endereco/${second.id}`),
+    ).expect(200);
+  });
+  it('PDV busca telefone formatado e consulta cadastro e endereços somente como administrador', async () => {
+    const telefone = userA.tel.slice(2);
+    const formatted = `(${telefone.slice(0, 2)}) ${telefone.slice(2, 7)}-${telefone.slice(7)}`;
+    const lista = await auth(
+      request(app.getHttpServer())
+        .get('/admin/clientes')
+        .query({ search: formatted }),
+      admin,
+    ).expect(200);
+    expect(lista.body.items.map((u: Usuario) => u.id)).toEqual([userA.id]);
+    for (const suffix of ['', '/enderecos']) {
+      const path = `/admin/clientes/${userA.id}${suffix}`;
+      await request(app.getHttpServer()).get(path).expect(401);
+      await auth(request(app.getHttpServer()).get(path), b).expect(403);
+      await auth(
+        request(app.getHttpServer()).get(`/admin/clientes/2147483647${suffix}`),
+        admin,
+      ).expect(404);
+    }
+    const detalhe = await auth(
+      request(app.getHttpServer()).get(`/admin/clientes/${userA.id}`),
+      admin,
+    ).expect(200);
+    expect(Object.keys(detalhe.body).sort()).toEqual([
+      'email',
+      'id',
+      'nome',
+      'tel',
+    ]);
+    const addresses = await auth(
+      request(app.getHttpServer()).get(`/admin/clientes/${userA.id}/enderecos`),
+      admin,
+    ).expect(200);
+    expect(addresses.body.length).toBeGreaterThan(0);
+    expect(
+      addresses.body.every(
+        (address: { usuarioId: number }) => address.usuarioId === userA.id,
+      ),
+    ).toBe(true);
+    const other = await auth(
+      request(app.getHttpServer()).get(`/admin/clientes/${userB.id}/enderecos`),
+      admin,
+    ).expect(200);
+    expect(other.body).toEqual([]);
   });
   it('reserva a última unidade uma só vez e mantém idempotência', async () => {
     await auth(request(app.getHttpServer()).post('/pedido/carrinho'), b)
@@ -1221,6 +1344,218 @@ describe('Loja: integração com MySQL e HTTP', () => {
     expect(JSON.stringify(result.body)).not.toContain('nao-expor');
     await tornarElegivel(pedido.id);
     await novaRotina().processarPedido(pedido.id);
+  });
+  describe('Repetir pedido do histórico', () => {
+    let token: string,
+      adminHistorico: string,
+      usuario: Usuario,
+      origem: Pedido,
+      carrinhoId: number;
+    const ingredientes = [
+      { id: 'base', nome: 'Base', valor: 1, removivel: false, quantia: 1 },
+      { id: 'cebola', nome: 'Cebola', valor: 2, removivel: true, quantia: 1 },
+      { id: 'tomate', nome: 'Tomate', valor: 1, removivel: true, quantia: 1 },
+    ];
+    beforeEach(async () => {
+      for (const id of [901, 902])
+        await db.getRepository(Produto).save({
+          id,
+          categoriaId: 'test',
+          titulo: `Produto histórico ${id}`,
+          descricao: 'Teste',
+          precoCentavos: id === 901 ? 6000 : 2000,
+          imagem: '',
+          ativo: true,
+          limite: 20,
+          esgotado: false,
+          classificacoes: [],
+          componentes: [],
+          ingredientes: id === 901 ? ingredientes : [],
+          adicionais:
+            id === 901 ? [{ id: 'molho', nome: 'Molho', valor: 5 }] : [],
+        });
+      usuario = await db
+        .getRepository(Usuario)
+        .save({ nome: 'Cliente histórico' });
+      token = (
+        await db.transaction((m) =>
+          app.get(AuthService).criarSessao(m, usuario),
+        )
+      ).token;
+      origem = await db.getRepository(Pedido).save({
+        usuarioId: usuario.id,
+        status: 'completed',
+        pagamentoStatus: 'paid',
+        dataEntrega: new Date(slot),
+        canal: 'entrega',
+        formaPagamento: 'Pagamento na Entrega - Dinheiro',
+        endereco: { rua: 'Rua antiga' },
+        reserva: [],
+      });
+      const service = app.get(PedidosService);
+      await db.getRepository(PedidoItem).save(
+        await service.montarItem(db.manager, origem.id, {
+          produtoId: 901,
+          quantidade: 1,
+          obs: 'Sem cebola, trocar por tomate',
+          adicionais: ['molho'],
+          ingredientes: ['base', 'tomate'],
+          substituicoes: [{ removerId: 'cebola', adicionarId: 'tomate' }],
+        }),
+      );
+      await db.getRepository(PedidoItem).save(
+        await service.montarItem(db.manager, origem.id, {
+          produtoId: 902,
+          quantidade: 1,
+          obs: '',
+          adicionais: [],
+          ingredientes: [],
+        }),
+      );
+      origem = await db
+        .getRepository(Pedido)
+        .findOneByOrFail({ id: origem.id });
+      await service.recalcular(db.manager, origem, usuario);
+      const administrador = await db
+        .getRepository(Usuario)
+        .findOneByOrFail({ email: 'admin@test.example' });
+      adminHistorico = (
+        await db.transaction((m) =>
+          app.get(AuthService).criarSessao(m, administrador),
+        )
+      ).token;
+      carrinhoId = (
+        await auth(request(app.getHttpServer()).post('/pedido/carrinho'), token)
+          .send({ produtoId: 902, quantidade: 1 })
+          .expect(201)
+      ).body.id;
+    });
+    const repetir = (id: number, key: string, credencial: string) =>
+      auth(
+        request(app.getHttpServer()).post(`/pedido/${id}/repetir`),
+        credencial,
+      ).set('Idempotency-Key', key);
+
+    it('preserva opções e carrinho existente, atualiza preços e evita duplicação concorrente', async () => {
+      await db.getRepository(Produto).update(901, {
+        precoCentavos: 7000,
+        adicionais: [{ id: 'molho', nome: 'Molho', valor: 6 }],
+      });
+      const results = await Promise.all([
+        repetir(origem.id, 'repeat-concurrent', token),
+        repetir(origem.id, 'repeat-concurrent', token),
+      ]);
+      results.forEach((result) => expect(result.status).toBe(201));
+      const cart = (
+        await auth(
+          request(app.getHttpServer()).get('/pedido/carrinho'),
+          token,
+        ).expect(200)
+      ).body;
+      expect(cart.itens).toHaveLength(3);
+      expect(cart.valorFinal).toBe(116);
+      const copied = cart.itens.find((i: any) => i.produto.id === 901);
+      expect(copied.obs).toBe('Sem cebola, trocar por tomate');
+      expect(copied.produto.ingredientes.map((i: any) => i.id)).toEqual([
+        'base',
+        'tomate',
+      ]);
+      expect(copied.produto.adicionais).toEqual([
+        { id: 'molho', nome: 'Molho', valor: 6 },
+      ]);
+      expect(copied.produto.substituicoes[0]).toMatchObject({
+        removerId: 'cebola',
+        adicionarId: 'tomate',
+      });
+      expect(cart.endereco).toEqual({});
+      expect(cart.dataEntrega).toBeNull();
+      expect(cart.formaPagamento).toBe('');
+      expect(cart.cupom).toBeNull();
+      expect(cart.cashBack).toBe(0);
+      const original = await db
+        .getRepository(PedidoItem)
+        .findOneByOrFail({ pedidoId: origem.id, produtoId: 901 });
+      expect(original.precoUnitarioCentavos).toBe(6500);
+      expect(
+        await db.getRepository(Estoque).count({ where: { produtoId: 901 } }),
+      ).toBe(0);
+      expect(
+        await db.getRepository(Auditoria).count({
+          where: { usuarioId: usuario.id, acao: 'carrinho.repetido' },
+        }),
+      ).toBe(1);
+    });
+    it('reverte todos os itens quando um produto ou opção deixa de existir', async () => {
+      const before = (
+        await auth(request(app.getHttpServer()).get('/pedido/carrinho'), token)
+      ).body;
+      await db.getRepository(Produto).update(902, { ativo: false });
+      await repetir(origem.id, 'repeat-invalid-product', token).expect(400);
+      let after = (
+        await auth(request(app.getHttpServer()).get('/pedido/carrinho'), token)
+      ).body;
+      expect(after.itens).toEqual(before.itens);
+      expect(after.valorFinal).toBe(before.valorFinal);
+      await db.getRepository(Produto).update(902, { ativo: true });
+      await db.getRepository(Produto).update(901, { adicionais: [] });
+      await repetir(origem.id, 'repeat-invalid-option', token).expect(400);
+      after = (
+        await auth(request(app.getHttpServer()).get('/pedido/carrinho'), token)
+      ).body;
+      expect(after.itens).toEqual(before.itens);
+      expect(
+        await db.getRepository(Auditoria).count({
+          where: { usuarioId: usuario.id, acao: 'carrinho.repetido' },
+        }),
+      ).toBe(0);
+    });
+    it('respeita limites acumulados e o máximo de linhas do carrinho', async () => {
+      await db.getRepository(Produto).update(902, { limite: 1 });
+      await repetir(origem.id, 'repeat-quantity-limit', token).expect(400);
+      expect(
+        await db
+          .getRepository(PedidoItem)
+          .count({ where: { pedidoId: carrinhoId } }),
+      ).toBe(1);
+      await db.getRepository(Produto).update(902, { limite: 200 });
+      const original = await db
+        .getRepository(PedidoItem)
+        .findOneByOrFail({ pedidoId: carrinhoId });
+      const item = { ...original };
+      delete item.id;
+      await db
+        .getRepository(PedidoItem)
+        .save(Array.from({ length: 99 }, () => ({ ...item })));
+      await repetir(origem.id, 'repeat-cart-limit', token).expect(400);
+      expect(
+        await db
+          .getRepository(PedidoItem)
+          .count({ where: { pedidoId: carrinhoId } }),
+      ).toBe(100);
+    });
+    it('isola o titular e rejeita rascunhos e reutilização de chave para outro pedido', async () => {
+      await request(app.getHttpServer())
+        .post(`/pedido/${origem.id}/repetir`)
+        .set('Idempotency-Key', 'repeat-no-auth')
+        .expect(401);
+      await repetir(origem.id, 'repeat-other-owner', a).expect(404);
+      await repetir(origem.id, 'repeat-admin-owner', adminHistorico).expect(
+        404,
+      );
+      await auth(
+        request(app.getHttpServer()).post(`/pedido/${origem.id}/repetir`),
+        token,
+      ).expect(400);
+      await repetir(carrinhoId, 'repeat-draft-order', token).expect(404);
+      await repetir(origem.id, 'repeat-key-conflict', token).expect(201);
+      const other = await db.getRepository(Pedido).save({
+        usuarioId: usuario.id,
+        status: 'cancelled',
+        endereco: {},
+        reserva: [],
+      });
+      await repetir(other.id, 'repeat-key-conflict', token).expect(409);
+    });
   });
   it('refresh rotaciona token, logout revoga a sessão e reset consome o link', async () => {
     const original = await db.transaction((m) =>

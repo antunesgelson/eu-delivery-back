@@ -268,6 +268,79 @@ export class PedidosService {
       return this.formatar(m, p);
     });
   }
+  async repetir(usuarioId: number, pedidoId: number, key: string) {
+    if (!key || !/^[A-Za-z0-9_-]{8,100}$/.test(key))
+      throw new BadRequestException(
+        'Informe uma chave de idempotência válida.',
+      );
+    return this.db.transaction(async (m) => {
+      // Mesma ordem de bloqueios do checkout: catálogo, cliente e cupom.
+      await this.catalogo.bloquear(m);
+      const usuario = await this.usuarioLock(m, usuarioId);
+      const origem = await m.findOneBy(Pedido, { id: pedidoId, usuarioId });
+      if (!origem || origem.status === 'carrinho')
+        throw new NotFoundException('Pedido não encontrado no seu histórico.');
+      const anterior = await m.findOneBy(Auditoria, {
+        usuarioId,
+        acao: 'carrinho.repetido',
+        recurso: key,
+      });
+      const carrinho = await this.rascunho(m, usuarioId);
+      if (anterior) {
+        if (anterior.dados.pedidoOrigemId !== pedidoId)
+          throw new ConflictException('Chave já utilizada para outro pedido.');
+        return this.formatar(m, carrinho);
+      }
+      const itens = await m.find(PedidoItem, {
+        where: { pedidoId },
+        order: { id: 'ASC' },
+      });
+      const existentes = await m.find(PedidoItem, {
+        where: { pedidoId: carrinho.id },
+      });
+      if (!itens.length)
+        throw new BadRequestException(
+          'Este pedido não possui itens para repetir.',
+        );
+      if (existentes.length + itens.length > 100)
+        throw new BadRequestException('Limite de itens do carrinho atingido.');
+      const quantidades = new Map<number, number>();
+      for (const item of existentes)
+        quantidades.set(
+          item.produtoId,
+          (quantidades.get(item.produtoId) ?? 0) + item.quantidade,
+        );
+      for (const item of itens) {
+        const novo = await this.montarItem(m, carrinho.id, {
+          produtoId: item.produtoId,
+          quantidade: item.quantidade,
+          obs: item.obs,
+          adicionais: (item.snapshot.adicionais ?? []).map((a) => a.id),
+          ingredientes: (item.snapshot.ingredientes ?? []).map((i) => i.id),
+          substituicoes: (item.snapshot.substituicoes ?? []).map(
+            ({ removerId, adicionarId }) => ({ removerId, adicionarId }),
+          ),
+        });
+        const quantidade =
+          (quantidades.get(item.produtoId) ?? 0) + item.quantidade;
+        if (quantidade > novo.snapshot.limitItens)
+          throw new BadRequestException(
+            `Limite total de ${novo.snapshot.limitItens} unidades para ${novo.snapshot.titulo}.`,
+          );
+        quantidades.set(item.produtoId, quantidade);
+        await m.save(novo);
+      }
+      // Somente os itens são copiados; checkout e benefícios do pedido antigo não são reutilizados.
+      await this.recalcular(m, carrinho, usuario);
+      await m.save(Auditoria, {
+        usuarioId,
+        acao: 'carrinho.repetido',
+        recurso: key,
+        dados: { pedidoOrigemId: pedidoId, carrinhoId: carrinho.id },
+      });
+      return this.formatar(m, carrinho);
+    });
+  }
   async quantidade(id: number, itemId: number, quantidade: number) {
     return this.db.transaction(async (m) => {
       const u = await this.usuarioLock(m, id),
@@ -711,6 +784,7 @@ export class PedidosService {
       );
     const [rows, total] = await b
       .orderBy('p.created_at', q.order)
+      .addOrderBy('p.id', q.order)
       .skip((q.page - 1) * q.limit)
       .take(q.limit)
       .getManyAndCount();

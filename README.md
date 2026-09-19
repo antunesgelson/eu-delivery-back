@@ -94,6 +94,7 @@ Todas as rotas privadas usam `Authorization: Bearer <access token>`. O frontend 
 | `GET /pedido/horarios/:data` | horários disponíveis; data `YYYY-MM-DD` |
 | `POST /pedido/finalizar` | cabeçalho `Idempotency-Key` de 8–100 caracteres; valores calculados pelo servidor |
 | `GET /pedido`, `/pedido/:id` | listagem paginada e detalhe do titular; administrador pode consultar detalhe |
+| `POST /pedido/:id/repetir` | adiciona os itens de um pedido do próprio histórico ao carrinho, em uma transação; exige `Idempotency-Key` e recalcula preços e opções |
 | `GET /admin/pedidos` | listagem administrativa; `status=active` reúne análise, produção e pronto |
 | `PATCH /admin/pedidos/:id/status` | `analysis → production → ready → completed`; cancelamento antes da conclusão |
 | `PATCH /admin/pedidos/:id/pagamento` | `{paymentStatus:'paid'}` somente para recebimento presencial |
@@ -101,6 +102,7 @@ Todas as rotas privadas usam `Authorization: Bearer <access token>`. O frontend 
 | `POST /admin/pdv` | cliente existente, itens, horário, canal, pagamento; aceita endereço de entrega/ajuste administrativo/parcelas; idempotência obrigatória |
 | `GET/POST /admin/pdv/rascunhos`, `DELETE /admin/pdv/rascunhos/:id` | rascunhos por administrador, até 50; sem reserva |
 | `GET/POST /admin/clientes`, `PUT /admin/clientes/:id` | buscar/cadastrar/editar clientes sem elevação de perfil |
+| `GET /admin/clientes/:id`, `GET /admin/clientes/:id/enderecos` | consultar cliente ativo e seus endereços no PDV; acesso exclusivo de administrador |
 | `GET /admin/clientes/:id/beneficios`, `POST /admin/clientes/:id/premios/:premioId/resgatar` | saldo/prêmios e registro de entrega da recompensa |
 | `GET /admin/relatorios` | totais de pedidos pagos/concluídos, últimos 12 meses, 50 itens e uso de cupons |
 | `GET /cupom/publicos`, `GET/POST/PUT /cupom`, `DELETE /cupom/:id` | cupons; escrita administrativa; exclusão arquiva preservando histórico |
@@ -179,6 +181,22 @@ Solicitações manuais têm intervalo mínimo de **um minuto por pedido**, persi
 A migration `1789570000000-Conciliacao` cria a fila e inclui pedidos online existentes que já possuam vencimento e continuem pendentes. Aplicação no ambiente local: `DOTENV_CONFIG_PATH=.env.codex.local npm run migration:run`. Não atribui prazo a pedidos legados sem vencimento.
 
 Os sete testes novos verificam persistência entre instâncias da rotina, intervalos e autorização, limite de solicitações simultâneas, avanço além de 50 falhas, catálogo acessível durante consulta lenta, retomada de execução interrompida, webhook/checkout concorrentes e classificação de divergências. O navegador foi verificado com cenários controlados para paginação, agendamento, erro de carregamento e remoção de alertas resolvidos. A validação real com o provedor continua pendente de credenciais de homologação.
+
+## Testes de pagamento no navegador
+
+O arquivo `test/browser-payment-harness.cjs` permite ao frontend iniciar a API real com gateway de pagamento simulado e banco MySQL temporário exclusivo. Ele aplica as migrations, cria catálogo/clientes de teste e remove o banco criado ao finalizar. Exige MySQL local e permissão para criar/remover bancos; não usa o banco de desenvolvimento para os pedidos desses cenários.
+
+Compile este backend com `npm run build`. No frontend, execute `npm run build` e `npm run test:e2e -- pagamento.spec.ts`. Por padrão, a fixture procura este projeto em `../eu-delivery-back` e lê `.env.codex.local`; `E2E_BACKEND_DIR` e `E2E_BACKEND_ENV` permitem alterar esses caminhos. Os três cenários verificam expiração/conciliação, aprovação tardia/estorno e recuperação de indisponibilidade. Nenhuma cobrança externa é realizada; esta cobertura não equivale à homologação com Mercado Pago.
+
+O mesmo harness atende `recuperacao-senha.spec.ts` do frontend: cria contas temporárias e permite vencer um desafio para validar recuperação de senha, uso único do link e revogação das sessões. Execute `npm run test:e2e -- recuperacao-senha.spec.ts` no frontend após os builds. Esses testes usam `AUTH_DELIVERY_MODE=development` e não enviam e-mails externos.
+
+O frontend também usa o harness em `cupons.spec.ts`, com contas temporárias que podem receber saldo inicial de cashback. Os cupons são cadastrados pelos endpoints administrativos reais; os cenários verificam aplicação/remoção, troca de cashback, cupom privado e uso único. Nenhum saldo de uma conta fora do banco temporário é alterado.
+
+## Datas civis na integração
+
+A conexão MySQL usa `dateStrings: ['DATE']`: aniversário, data de estoque e validade de cupom são strings `YYYY-MM-DD`, sem conversão de fuso. Os campos `DATETIME` continuam representando instantes. Isso corrige a leitura do aniversário como dia anterior em processos no fuso de São Paulo, sem migration ou alteração dos dados armazenados.
+
+Validação em 18/09/2026: 34 testes HTTP/MySQL passaram com `TZ=America/Sao_Paulo DOTENV_CONFIG_PATH=.env.codex.local npm run test:e2e`, incluindo salvamento, leitura e limpeza da data de nascimento. No frontend, `npm run test:e2e -- perfil.spec.ts pagamento.spec.ts` aprovou os seis cenários de perfil/pagamentos com o banco temporário.
 
 ## Banco legado e operação
 

@@ -14,6 +14,8 @@ export const opcoesBanco = () => ({
   synchronize: false,
   migrationsRun: false,
   timezone: 'Z',
+  // DATE representa um dia civil; só timestamps devem virar objetos Date.
+  dateStrings: ['DATE'],
   charset: 'utf8mb4',
   logging: false as const,
 });

@@ -73,6 +73,13 @@ export class PedidosController {
   ) {
     return this.pedidos.obter(id, r.user.id, r.user.isAdmin);
   }
+  @Post('pedido/:id/repetir') repetir(
+    @Req() r: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.pedidos.repetir(r.user.id, id, key);
+  }
   @Admin() @Get('admin/pedidos') admin(@Req() r: any, @Query() q: ListaDto) {
     return this.pedidos.listar(r.user.id, q, true);
   }
