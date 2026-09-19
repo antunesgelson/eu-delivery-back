@@ -1,7 +1,7 @@
 name: API e banco
 on:
   push:
-    branches: [master]
+    branches: [master, "codex/integracao-**"]
   pull_request:
   workflow_dispatch:
 permissions:
