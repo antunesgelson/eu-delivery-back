@@ -6,13 +6,25 @@ import {
   ParseIntPipe,
   Put,
   Req,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { Admin, Publico } from '../../common/security';
 import { CatalogoService } from './catalogo.service';
 import { SalvarCatalogoDto } from './catalogo.dto';
 @Controller()
 export class CatalogoController {
   constructor(private catalogo: CatalogoService) {}
+  @Publico() @Get('produto/:id/imagem') async imagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() response: Response,
+  ) {
+    const image = await this.catalogo.imagem(id);
+    response
+      .type(image.type)
+      .set('Cache-Control', 'public, max-age=60')
+      .send(image.buffer);
+  }
   @Publico() @Get('categoria/lista/detalhes') listar() {
     return this.catalogo.listar();
   }

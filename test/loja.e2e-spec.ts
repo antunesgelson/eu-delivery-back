@@ -149,6 +149,39 @@ describe('Loja: integração com MySQL e HTTP', () => {
       await connection.end();
     }
   }, 30000);
+  it('sondas públicas confirmam API e banco sem expor detalhes internos', async () => {
+    for (const path of ['/health/live', '/health/ready']) {
+      const response = await request(app.getHttpServer()).get(path).expect(200);
+      expect(response.body).toEqual({ status: 'ok' });
+      expect(response.headers['cache-control']).toBe('no-store');
+    }
+  });
+  it('prontidão recusa falha do banco e migrations pendentes, mantendo liveness', async () => {
+    const query = jest
+      .spyOn(db, 'query')
+      .mockRejectedValueOnce(new Error('SQL com dados internos'));
+    try {
+      const response = await request(app.getHttpServer())
+        .get('/health/ready')
+        .expect(503);
+      expect(response.body).toEqual({ status: 'unavailable' });
+      await request(app.getHttpServer()).get('/health/live').expect(200);
+    } finally {
+      query.mockRestore();
+    }
+    const migrations = jest
+      .spyOn(db, 'showMigrations')
+      .mockResolvedValueOnce(true);
+    try {
+      const response = await request(app.getHttpServer())
+        .get('/health/ready')
+        .expect(503);
+      expect(response.body).toEqual({ status: 'unavailable' });
+    } finally {
+      migrations.mockRestore();
+    }
+    await request(app.getHttpServer()).get('/health/ready').expect(200);
+  });
   it('nega JWT forjado e login incorreto; permite senha válida', async () => {
     await auth(
       request(app.getHttpServer()).get('/admin/pedidos'),
@@ -1557,6 +1590,82 @@ describe('Loja: integração com MySQL e HTTP', () => {
       await repetir(other.id, 'repeat-key-conflict', token).expect(409);
     });
   });
+  it('imagens persistidas usam URLs compactas e preservam conteúdo ao editar e duplicar', async () => {
+    const prefix = '/api/backend';
+    const png = Buffer.alloc(1100100);
+    png.write(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nYQAAAAASUVORK5CYII=',
+      0,
+      'base64',
+    );
+    const image = `data:image/png;base64,${png.toString('base64')}`;
+    let data = (
+      await auth(
+        request(app.getHttpServer()).get('/admin/catalogo'),
+        admin,
+      ).expect(200)
+    ).body;
+    for (let index = 0; index < 3; index++) {
+      data.categories[0].products.push({
+        id: 880001 + index,
+        title: `Imagem ${index}`,
+        description: 'Teste de mídia',
+        price: 10,
+        image,
+        servingSize: 1,
+        stock: { saturday: 10, sunday: 10 },
+        forcedSoldOut: false,
+        productKind: 'simple',
+        components: [],
+      });
+      data = (
+        await auth(request(app.getHttpServer()).put('/admin/catalogo'), admin)
+          .send(data)
+          .expect(200)
+      ).body;
+    }
+    expect(Buffer.byteLength(JSON.stringify(data))).toBeLessThan(200000);
+    const product = data.categories[0].products.find(
+      (p: any) => p.id === 880001,
+    );
+    expect(product.image).toMatch(
+      /^\/api\/backend\/produto\/880001\/imagem\?v=/,
+    );
+    const readImage = async (url: string) => {
+      const response = await request(app.getHttpServer())
+        .get(url.slice(prefix.length))
+        .expect(200)
+        .expect('Content-Type', /image\/png/);
+      expect(
+        Buffer.from(response.body).toString('base64') ===
+          png.toString('base64'),
+      ).toBe(true);
+    };
+    await readImage(product.image);
+    product.title = 'Imagem renomeada';
+    data.categories[0].products.push({
+      ...product,
+      id: 880004,
+      title: 'Imagem duplicada',
+    });
+    const saved = (
+      await auth(request(app.getHttpServer()).put('/admin/catalogo'), admin)
+        .send(data)
+        .expect(200)
+    ).body;
+    const copy = saved.categories[0].products.find((p: any) => p.id === 880004);
+    await readImage(copy.image);
+    expect(
+      (await db.getRepository(Produto).findOneByOrFail({ id: 880004 })).imagem,
+    ).toBe(image);
+    const publicProduct = (
+      await request(app.getHttpServer()).get('/produto/880004').expect(200)
+    ).body;
+    expect(publicProduct.imgs[0].Location).toBe(copy.image);
+    await request(app.getHttpServer())
+      .get('/produto/99999999/imagem')
+      .expect(404);
+  }, 30000);
   it('refresh rotaciona token, logout revoga a sessão e reset consome o link', async () => {
     const original = await db.transaction((m) =>
       app.get(AuthService).criarSessao(m, userB),

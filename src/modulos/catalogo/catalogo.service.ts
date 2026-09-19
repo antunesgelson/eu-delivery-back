@@ -14,9 +14,27 @@ import {
 } from '../../database/entities';
 import { centavos } from '../../common/money';
 import { SalvarCatalogoDto } from './catalogo.dto';
+import { createHash } from 'crypto';
 @Injectable()
 export class CatalogoService {
   constructor(private db: DataSource) {}
+  private imagemPublica(p: Produto) {
+    if (!p.imagem?.startsWith('data:image/')) return p.imagem;
+    const version = createHash('sha256')
+      .update(p.imagem)
+      .digest('hex')
+      .slice(0, 16);
+    // Caminho público do BFF usado pela loja; o conteúdo permanece no banco.
+    return `/api/backend/produto/${p.id}/imagem?v=${version}`;
+  }
+  async imagem(id: number) {
+    const p = await this.db.getRepository(Produto).findOneBy({ id });
+    const match = p?.imagem?.match(
+      /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/,
+    );
+    if (!match) throw new NotFoundException('Imagem não encontrada.');
+    return { type: match[1], buffer: Buffer.from(match[2], 'base64') };
+  }
   async bloquear(m: EntityManager) {
     return m
       .getRepository(CatalogoVersao)
@@ -37,7 +55,7 @@ export class CatalogoService {
       imgs: p.imagem
         ? [
             {
-              Location: p.imagem,
+              Location: this.imagemPublica(p),
               ETag: String(p.id),
               Key: String(p.id),
               Bucket: 'catalogo',
@@ -96,7 +114,7 @@ export class CatalogoService {
             title: p.titulo,
             description: p.descricao,
             price: p.precoCentavos / 100,
-            image: p.imagem,
+            image: this.imagemPublica(p),
             servingSize: p.porcoes,
             stock: {
               saturday: Number(p.estoqueSabado),
@@ -180,6 +198,9 @@ export class CatalogoService {
         throw new ConflictException(
           'O cardápio ou estoque foi atualizado. Recarregue antes de salvar.',
         );
+      const images = new Map(
+        (await m.find(Produto)).map((p) => [String(p.id), p.imagem]),
+      );
       await m
         .getRepository(Produto)
         .createQueryBuilder()
@@ -203,13 +224,23 @@ export class CatalogoService {
         });
         for (const [pi, p] of c.products.entries()) {
           const existente = await m.findOneBy(Produto, { id: p.id });
+          const imageReference = p.image.match(
+            /^\/api\/backend\/produto\/(\d+)\/imagem(?:\?v=[a-f0-9]{16})?$/,
+          );
+          const image = imageReference
+            ? images.get(imageReference[1])
+            : p.image;
+          if (imageReference && !image?.startsWith('data:image/'))
+            throw new BadRequestException(
+              'A imagem referenciada não está disponível.',
+            );
           await m.save(Produto, {
             id: p.id,
             categoriaId: c.id,
             titulo: p.title.trim(),
             descricao: p.description,
             precoCentavos: centavos(p.price),
-            imagem: p.image,
+            imagem: image,
             porcoes: p.servingSize,
             estoqueSabado: p.stock.saturday,
             estoqueDomingo: p.stock.sunday,

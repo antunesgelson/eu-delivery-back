@@ -1,3 +1,4 @@
+import { HealthController } from './modulos/health/health.controller';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
@@ -44,6 +45,7 @@ import { PagamentosModule } from './modulos/pagamentos/pagamentos.module';
     PedidosModule,
     PagamentosModule,
   ],
+  controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AcessoGuard },

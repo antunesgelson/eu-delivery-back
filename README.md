@@ -41,20 +41,21 @@ DOTENV_CONFIG_PATH=.env.codex.local npm run migration:run
 
 ## Docker Compose
 
-Disponível para execução local; o Docker CLI não estava instalado no ambiente usado na validação.
-
-1. Crie `.env` a partir do exemplo, configure segredo JWT/senha administrativa e mantenha `MYSQL_DB=zanini_development`, `MYSQL_USER=zanini`.
-2. Execute:
+O Compose local aguarda o MySQL responder, executa as migrations em um serviço próprio e só então inicia a API. As senhas do banco e `JWT_SECRET` são obrigatórios; copie `.env.example` para `.env` e configure esses valores.
 
 ```sh
-docker compose up -d db
-docker compose build api
-docker compose run --rm api npm run migration:run:prod
-docker compose run --rm api npm run seed:prod-build
-docker compose up -d api
+docker compose up --build -d --wait
+# Opcional: dados e administrador de desenvolvimento.
+docker compose run --rm api node dist/database/seed.js
 ```
 
-MySQL fica disponível em `127.0.0.1:3308`; a API, em `127.0.0.1:4052`. Para executar o backend fora do container com esse banco, use porta 3308. O seed exige `NODE_ENV=development`, inclusive quando executado a partir do build.
+MySQL fica disponível em `127.0.0.1:3308`; a API, em `127.0.0.1:4052`. O Compose é destinado ao desenvolvimento local, usa autenticação de teste e não executa seed automaticamente. O frontend tem um Compose integrado e um teste com volume descartável: veja [validação reproduzível](../eu-delivery/docs/VALIDACAO-INTEGRACAO.md).
+
+A configuração foi validada sem daemon; execução dos containers e MySQL 8.4 ainda pendem de validação. O workflow `.github/workflows/ci.yml` prepara lint, build, testes HTTP/MySQL e compilação da imagem em GitHub Actions, sem deploy.
+
+### Disponibilidade
+
+`GET /health/live` retorna `200 {"status":"ok"}` quando a API responde. `GET /health/ready` consulta o banco e verifica migrations pendentes, com limite de dois segundos: responde `200` quando pronta ou `503 {"status":"unavailable"}`. Ambas são públicas, sem cache e sem informações internas. A suíte HTTP cobre sucesso, falha de banco e migrations pendentes.
 
 ## Comandos de verificação
 
@@ -156,7 +157,7 @@ A expiração registra `cancelamentoMotivo=pagamento_expirado` e devolve estoque
 
 A migration `1789560000000-ExpiracaoPagamento` adiciona colunas e índice, preservando pedidos anteriores sem prazo. Execute `DOTENV_CONFIG_PATH=.env.codex.local npm run migration:run` antes de iniciar a versão atualizada no ambiente local.
 
-A suíte contém **27 testes de integração**, incluindo concorrência de expiração, conciliação de aprovação sem webhook, falha do provedor, devolução única de cupom/cashback e aprovação/estorno tardios. As chamadas externas continuam substituídas por contratos de teste.
+A suíte atual contém **37 testes de integração**, incluindo concorrência de expiração, conciliação de aprovação sem webhook, falha do provedor, devolução única de cupom/cashback e aprovação/estorno tardios. As chamadas externas continuam substituídas por contratos de teste.
 
 Referências: [validade da preferência](https://www.mercadopago.com.br/developers/pt/reference/online-payments/checkout-pro-preferences/create-preference/post) e [busca de pagamentos](https://www.mercadopago.com.br/developers/pt/reference/online-payments/checkout-pro-preferences/search-payments/get).
 
