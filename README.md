@@ -51,7 +51,7 @@ docker compose run --rm api node dist/database/seed.js
 
 MySQL fica disponível em `127.0.0.1:3308`; a API, em `127.0.0.1:4052`. O Compose é destinado ao desenvolvimento local, usa autenticação de teste e não executa seed automaticamente. O frontend tem um Compose integrado e um teste com volume descartável: veja [validação reproduzível](../eu-delivery/docs/VALIDACAO-INTEGRACAO.md).
 
-A configuração foi validada sem daemon; execução dos containers e MySQL 8.4 ainda pendem de validação. O workflow `.github/workflows/ci.yml` prepara lint, build, testes HTTP/MySQL e compilação da imagem em GitHub Actions, sem deploy.
+O [CI da API](https://github.com/antunesgelson/eu-delivery-back/actions/runs/35468714263) passou em 19/09/2026: lint, build, 37 testes HTTP/MySQL 8.4 e compilação da imagem. Em 20/09, o teste Docker integrado do frontend também passou em volume novo, incluindo migrations repetidas, login, reinício e falha/recuperação do banco. Os workflows não fazem deploy.
 
 ### Disponibilidade
 
