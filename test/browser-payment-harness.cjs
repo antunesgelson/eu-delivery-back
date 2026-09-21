@@ -130,6 +130,9 @@ exports.createPaymentHarness = async function createPaymentHarness() {
       slot,
       faults,
       close,
+      async configureProduct(options) {
+        await db.getRepository(Produto).update(101, options);
+      },
       async stockForDate(date) {
         const stock = await db.getRepository(Estoque).findOneBy({ produtoId: 101, data: date });
         return stock ? Number(stock.reservado) : 0;

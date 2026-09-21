@@ -18,6 +18,7 @@ import {
   ListaDto,
   CupomDto,
   ConfigDto,
+  ConfiguracoesDto,
   ClienteAdminDto,
   CriarClienteDto,
 } from './clientes.dto';
@@ -115,6 +116,12 @@ export class ClientesController {
   }
   @Publico() @Get('configuracao') config() {
     return this.clientes.config();
+  }
+  @Admin() @Put('admin/configuracoes') salvarConfiguracoes(
+    @Req() r: any,
+    @Body() d: ConfiguracoesDto,
+  ) {
+    return this.clientes.configurarLote(d.configuracoes, r.user.id);
   }
   @Admin() @Post('configuracao') criarConfig(
     @Req() r: any,

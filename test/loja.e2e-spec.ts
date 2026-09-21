@@ -1666,6 +1666,189 @@ describe('Loja: integração com MySQL e HTTP', () => {
       .get('/produto/99999999/imagem')
       .expect(404);
   }, 30000);
+  it('salva configurações em lote sem gravar parcialmente e exige administrador', async () => {
+    const repo = db.getRepository(Configuracao);
+    const before = await repo.find();
+    const changes = [
+      { chave: 'TELEFONE', valor: '5548999990000' },
+      { chave: 'CASHBACK', valor: '7' },
+    ];
+    try {
+      await auth(request(app.getHttpServer()).put('/admin/configuracoes'))
+        .send({ configuracoes: changes })
+        .expect(403);
+      await auth(
+        request(app.getHttpServer()).put('/admin/configuracoes'),
+        admin,
+      )
+        .send({
+          configuracoes: [changes[0], { chave: 'CASHBACK', valor: '101' }],
+        })
+        .expect(400);
+      expect(await repo.find()).toEqual(before);
+      await auth(
+        request(app.getHttpServer()).put('/admin/configuracoes'),
+        admin,
+      )
+        .send({
+          configuracoes: [
+            changes[0],
+            { chave: 'telefone', valor: '5548999990001' },
+          ],
+        })
+        .expect(400);
+      await auth(
+        request(app.getHttpServer()).put('/admin/configuracoes'),
+        admin,
+      )
+        .send({
+          configuracoes: [
+            {
+              chave: 'REDESSOCIAIS',
+              valor: JSON.stringify({ instagram: 'javascript:alert(1)' }),
+            },
+          ],
+        })
+        .expect(400);
+      await auth(
+        request(app.getHttpServer()).put('/admin/configuracoes'),
+        admin,
+      )
+        .send({ configuracoes: changes })
+        .expect(200);
+      expect((await repo.findOneByOrFail({ chave: 'TELEFONE' })).valor).toBe(
+        '5548999990000',
+      );
+      expect((await repo.findOneByOrFail({ chave: 'CASHBACK' })).valor).toBe(
+        '7',
+      );
+    } finally {
+      await repo.delete(['TELEFONE', 'CASHBACK']);
+      await repo.save(before);
+    }
+  });
+  it('horários excluem janelas que cruzam o intervalo e recusam intervalo fora do atendimento', async () => {
+    const repo = db.getRepository(Configuracao);
+    const before = await repo.find();
+    const target = new Date();
+    target.setUTCDate(target.getUTCDate() + 1);
+    while (target.getUTCDay() !== 6) target.setUTCDate(target.getUTCDate() + 1);
+    const rule = {
+      abertura: '11:30',
+      fechamento: '14:00',
+      inicio_intervalo: '11:45',
+      fim_intervalo: '12:15',
+    };
+    try {
+      await auth(
+        request(app.getHttpServer()).put('/admin/configuracoes'),
+        admin,
+      )
+        .send({
+          configuracoes: [
+            {
+              chave: 'HORARIOATENDIMENTO',
+              valor: JSON.stringify({ sab: rule }),
+            },
+            { chave: 'INTERVALODEENTREGA', valor: '30' },
+          ],
+        })
+        .expect(200);
+      const response = await request(app.getHttpServer())
+        .get('/pedido/horarios/' + target.toISOString().slice(0, 10))
+        .expect(200);
+      expect(response.body.map((v: any) => v.horario)).toEqual([
+        '12:30',
+        '13:00',
+        '13:30',
+      ]);
+      await auth(request(app.getHttpServer()).put('/configuracao'), admin)
+        .send({
+          chave: 'HORARIOATENDIMENTO',
+          valor: JSON.stringify({ sab: { ...rule, fim_intervalo: '15:00' } }),
+        })
+        .expect(400);
+    } finally {
+      await repo.delete(['HORARIOATENDIMENTO', 'INTERVALODEENTREGA']);
+      await repo.save(before);
+    }
+  });
+  it('relatórios respeitam dias civis, compartilham recorte e validam acesso e datas', async () => {
+    const repo = db.getRepository(Pedido);
+    const criados: number[] = [];
+    try {
+      for (const [finalizadoEm, status, pagamentoStatus, totalCentavos] of [
+        ['2031-02-01T02:59:59Z', 'completed', 'paid', 1000],
+        ['2031-02-01T03:00:00Z', 'completed', 'paid', 2000],
+        ['2031-02-02T02:59:59Z', 'completed', 'paid', 3000],
+        ['2031-02-02T03:00:00Z', 'completed', 'paid', 4000],
+        ['2031-02-01T12:00:00Z', 'cancelled', 'paid', 5000],
+        ['2031-02-01T12:00:00Z', 'completed', 'pending', 6000],
+      ] as const) {
+        const p = await repo.save({
+          usuarioId: userA.id,
+          dataEntrega: new Date(slot),
+          finalizadoEm: new Date(finalizadoEm),
+          status,
+          pagamentoStatus,
+          totalCentavos,
+          cashbackGanhoCentavos: 100,
+          descontoCentavos: 200,
+          reserva: [],
+          endereco: {},
+        });
+        criados.push(p.id);
+      }
+      await auth(request(app.getHttpServer()).get('/admin/relatorios')).expect(
+        403,
+      );
+      for (const qs of [
+        'inicio=2031-02-30',
+        'inicio=2031-02-02&fim=2031-02-01',
+        'fim=invalid',
+      ])
+        await auth(
+          request(app.getHttpServer()).get('/admin/relatorios?' + qs),
+          admin,
+        ).expect(400);
+      const r = (
+        await auth(
+          request(app.getHttpServer()).get(
+            '/admin/relatorios?inicio=2031-02-01&fim=2031-02-01&limit=1',
+          ),
+          admin,
+        ).expect(200)
+      ).body;
+      expect(r).toMatchObject({
+        pedidos: 2,
+        faturamento: 50,
+        descontos: 4,
+        cashback: 2,
+        pedidosDetalhes: { total: 2, page: 1 },
+      });
+      expect(r.pedidosDetalhes.items).toHaveLength(1);
+      expect(r.pedidosDetalhes.items[0].id).toBe(criados[2]);
+      expect(
+        r.meses.map((m: any) => ({
+          mes: m.mes,
+          total: Number(m.total),
+          pedidos: Number(m.pedidos),
+        })),
+      ).toEqual([{ mes: '2031-02', total: 50, pedidos: 2 }]);
+      const second = (
+        await auth(
+          request(app.getHttpServer()).get(
+            '/admin/relatorios?inicio=2031-02-01&fim=2031-02-01&limit=1&page=2',
+          ),
+          admin,
+        ).expect(200)
+      ).body;
+      expect(second.pedidosDetalhes.items[0].id).toBe(criados[1]);
+      expect(second.faturamento).toBe(50);
+    } finally {
+      if (criados.length) await repo.delete(criados);
+    }
+  });
   it('refresh rotaciona token, logout revoga a sessão e reset consome o link', async () => {
     const original = await db.transaction((m) =>
       app.get(AuthService).criarSessao(m, userB),

@@ -12,6 +12,10 @@ import {
   Min,
   IsIn,
   IsNumber,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 export class PerfilDto {
@@ -67,4 +71,20 @@ export class ConfigDto {
 export class CriarClienteDto {
   @IsString() @Length(1, 150) nome: string;
   @Matches(/^55\d{10,11}$/) tel: string;
+}
+
+export class ConfiguracoesDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => ConfigDto)
+  configuracoes: ConfigDto[];
+}
+
+export class RelatorioDto {
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) inicio?: string;
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) fim?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 50;
 }

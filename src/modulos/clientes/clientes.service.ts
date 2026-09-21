@@ -314,7 +314,7 @@ export class ClientesService {
       )?.valor ?? fallback
     );
   }
-  async configurar(d: ConfigDto, usuarioId: number) {
+  private validarConfiguracao(d: ConfigDto) {
     const chave = d.chave.toUpperCase();
     const permitidas = [
       'CASHBACK',
@@ -377,7 +377,9 @@ export class ClientesService {
             rule.inicio_intervalo &&
             (!/^([01]\d|2[0-3]):[0-5]\d$/.test(rule.inicio_intervalo) ||
               !/^([01]\d|2[0-3]):[0-5]\d$/.test(rule.fim_intervalo) ||
-              rule.inicio_intervalo >= rule.fim_intervalo)
+              rule.inicio_intervalo >= rule.fim_intervalo ||
+              rule.inicio_intervalo < rule.abertura ||
+              rule.fim_intervalo > rule.fechamento)
           )
             throw new Error();
         }
@@ -413,6 +415,29 @@ export class ClientesService {
         );
       }
     }
+    if (chave === 'REDESSOCIAIS') {
+      try {
+        const redes = JSON.parse(d.valor);
+        if (!redes || Array.isArray(redes) || typeof redes !== 'object')
+          throw new Error();
+        for (const value of Object.values(redes)) {
+          if (typeof value !== 'string' || value.length > 2048)
+            throw new Error();
+          if (value && !['http:', 'https:'].includes(new URL(value).protocol))
+            throw new Error();
+        }
+      } catch {
+        throw new BadRequestException(
+          'Redes sociais devem informar URLs http ou https.',
+        );
+      }
+    }
+    if (
+      chave === 'TELEFONE' &&
+      d.valor &&
+      !/^\d{10,13}$/.test(d.valor.replace(/\D/g, ''))
+    )
+      throw new BadRequestException('Informe um telefone com DDD.');
     if (chave === 'AUTOACEITAR' && !['true', 'false'].includes(d.valor))
       throw new BadRequestException('Valor booleano inválido.');
     if (
@@ -432,15 +457,27 @@ export class ClientesService {
         throw new BadRequestException('Configuração JSON inválida.');
       }
     }
-    const result = await this.db
-      .getRepository(Configuracao)
-      .save({ chave, valor: d.valor, privado: false });
-    await this.db.getRepository(Auditoria).save({
-      usuarioId,
-      acao: 'configuracao.atualizada',
-      recurso: chave,
-      dados: {},
+    return { chave, valor: d.valor, privado: false };
+  }
+  async configurar(d: ConfigDto, usuarioId: number) {
+    return (await this.configurarLote([d], usuarioId))[0];
+  }
+  async configurarLote(configuracoes: ConfigDto[], usuarioId: number) {
+    const values = configuracoes.map((d) => this.validarConfiguracao(d));
+    if (new Set(values.map((v) => v.chave)).size !== values.length)
+      throw new BadRequestException('Configurações repetidas no mesmo envio.');
+    // Valida o lote inteiro antes de gravar e inclui a auditoria na mesma transação.
+    return this.db.transaction(async (m) => {
+      const result = await m.getRepository(Configuracao).save(values);
+      await m.getRepository(Auditoria).save(
+        values.map(({ chave }) => ({
+          usuarioId,
+          acao: 'configuracao.atualizada',
+          recurso: chave,
+          dados: {},
+        })),
+      );
+      return result;
     });
-    return result;
   }
 }

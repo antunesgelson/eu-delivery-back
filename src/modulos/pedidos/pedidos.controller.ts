@@ -13,7 +13,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { Admin, Publico } from '../../common/security';
-import { ListaDto } from '../clientes/clientes.dto';
+import { ListaDto, RelatorioDto } from '../clientes/clientes.dto';
 import {
   CarrinhoDto,
   ItemDto,
@@ -127,7 +127,7 @@ export class PedidosController {
   ) {
     return this.pedidos.finalizar(d.clienteId, key, d, r.user.id);
   }
-  @Admin() @Get('admin/relatorios') relatorios() {
-    return this.pedidos.relatorios();
+  @Admin() @Get('admin/relatorios') relatorios(@Query() q: RelatorioDto) {
+    return this.pedidos.relatorios(q);
   }
 }

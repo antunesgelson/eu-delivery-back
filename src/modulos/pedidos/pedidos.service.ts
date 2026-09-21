@@ -26,7 +26,7 @@ import { ClientesService } from '../clientes/clientes.service';
 import { centavos, dataLoja } from '../../common/money';
 import { CarrinhoDto, ItemDto, PdvDto, EditarPedidoDto } from './pedidos.dto';
 import { FalhaConciliacao } from '../../common/conciliacao';
-import { ListaDto } from '../clientes/clientes.dto';
+import { ListaDto, RelatorioDto } from '../clientes/clientes.dto';
 
 import { PagamentosService } from '../pagamentos/pagamentos.service';
 
@@ -174,6 +174,9 @@ export class PedidosService {
         ingredientes,
         adicionais,
         substituicoes,
+        removidos: p.ingredientes
+          .filter((i) => !ingredientes.some((s) => s.id === i.id))
+          .map((i) => ({ id: i.id, nome: i.nome })),
       },
     });
   }
@@ -489,8 +492,8 @@ export class PedidosService {
       if (
         regra.inicio_intervalo &&
         regra.fim_intervalo &&
-        n >= minutes(regra.inicio_intervalo) &&
-        n < minutes(regra.fim_intervalo)
+        n < minutes(regra.fim_intervalo) &&
+        n + step > minutes(regra.inicio_intervalo)
       )
         continue;
       const horario = `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
@@ -1055,28 +1058,80 @@ export class PedidosService {
     if (!result.affected) throw new NotFoundException();
     return { message: 'Rascunho removido.' };
   }
-  async relatorios() {
-    const summary = await this.db
+  async relatorios(q: RelatorioDto = new RelatorioDto()) {
+    for (const date of [q.inicio, q.fim]) {
+      if (
+        date &&
+        (!Number.isFinite(new Date(date).getTime()) ||
+          new Date(date).toISOString().slice(0, 10) !== date)
+      )
+        throw new BadRequestException(
+          'Informe datas válidas para o relatório.',
+        );
+    }
+    if (q.inicio && q.fim && q.inicio > q.fim)
+      throw new BadRequestException(
+        'A data inicial deve ser anterior ou igual à final.',
+      );
+    // A finalização determina o período; o dia civil segue o fuso da loja.
+    const inicio = q.inicio ? new Date(q.inicio + 'T00:00:00-03:00') : null;
+    const fim = q.fim
+      ? new Date(new Date(q.fim + 'T00:00:00-03:00').getTime() + 86400000)
+      : null;
+    const base = this.db
       .getRepository(Pedido)
       .createQueryBuilder('p')
+      .where('p.status = :status AND p.pagamentoStatus = :paid', {
+        status: 'completed',
+        paid: 'paid',
+      });
+    const params: Date[] = [];
+    let filtro = "p.status='completed' AND p.pagamentoStatus='paid'";
+    if (inicio) {
+      base.andWhere('p.finalizadoEm >= :inicio', { inicio });
+      filtro += ' AND p.finalizadoEm >= ?';
+      params.push(inicio);
+    }
+    if (fim) {
+      base.andWhere('p.finalizadoEm < :fim', { fim });
+      filtro += ' AND p.finalizadoEm < ?';
+      params.push(fim);
+    }
+    const summary = await base
+      .clone()
       .select('COUNT(*)', 'pedidos')
       .addSelect('COALESCE(SUM(p.totalCentavos),0)', 'totalCentavos')
       .addSelect('COALESCE(SUM(p.descontoCentavos),0)', 'descontos')
       .addSelect('COALESCE(SUM(p.cashbackGanhoCentavos),0)', 'cashback')
-      .where('p.status = :status AND p.pagamentoStatus = :paid', {
-        status: 'completed',
-        paid: 'paid',
-      })
       .getRawOne();
     const meses = await this.db.query(
-      "SELECT DATE_FORMAT(finalizadoEm, '%Y-%m') mes, COUNT(*) pedidos, SUM(totalCentavos)/100 total FROM pedidos WHERE status='completed' AND pagamentoStatus='paid' GROUP BY mes ORDER BY mes DESC LIMIT 12",
+      `SELECT DATE_FORMAT(DATE_SUB(p.finalizadoEm, INTERVAL 3 HOUR), '%Y-%m') mes, COUNT(*) pedidos, SUM(p.totalCentavos)/100 total FROM pedidos p WHERE ${filtro} GROUP BY mes ORDER BY mes DESC`,
+      params,
     );
     const itens = await this.db.query(
-      "SELECT JSON_UNQUOTE(JSON_EXTRACT(i.snapshot,'$.titulo')) titulo,SUM(i.quantidade) quantidade,SUM(i.quantidade*i.precoUnitarioCentavos)/100 total FROM pedidos_itens i JOIN pedidos p ON p.id=i.pedidoId WHERE p.status='completed' AND p.pagamentoStatus='paid' GROUP BY titulo ORDER BY quantidade DESC LIMIT 50",
+      `SELECT JSON_UNQUOTE(JSON_EXTRACT(i.snapshot,'$.titulo')) titulo,SUM(i.quantidade) quantidade,SUM(i.quantidade*i.precoUnitarioCentavos)/100 total FROM pedidos_itens i JOIN pedidos p ON p.id=i.pedidoId WHERE ${filtro} GROUP BY titulo ORDER BY quantidade DESC, titulo`,
+      params,
     );
     const cupons = await this.db.query(
-      "SELECT c.nome,COUNT(p.id) usos,COALESCE(SUM(p.descontoCentavos),0)/100 desconto FROM cupons c LEFT JOIN pedidos p ON p.cupomId=c.id AND p.status='completed' AND p.pagamentoStatus='paid' GROUP BY c.id ORDER BY usos DESC LIMIT 100",
+      `SELECT c.nome,COUNT(p.id) usos,COALESCE(SUM(p.descontoCentavos),0)/100 desconto FROM cupons c JOIN pedidos p ON p.cupomId=c.id WHERE ${filtro} GROUP BY c.id, c.nome ORDER BY usos DESC, c.nome`,
+      params,
     );
+    const pedidos = await base
+      .clone()
+      .leftJoinAndSelect('p.usuario', 'u')
+      .orderBy('p.finalizadoEm', 'DESC')
+      .addOrderBy('p.id', 'DESC')
+      .skip((q.page - 1) * q.limit)
+      .take(q.limit)
+      .getMany();
+    const items = pedidos.map((p) => ({
+      id: p.id,
+      cliente: p.usuario.nome || 'Cliente',
+      finalizadoEm: p.finalizadoEm,
+      total: p.totalCentavos / 100,
+      desconto: p.descontoCentavos / 100,
+      cashback: p.cashbackGanhoCentavos / 100,
+    }));
     const clientes = await this.db
       .getRepository(Usuario)
       .countBy({ isAdmin: false });
@@ -1089,6 +1144,18 @@ export class PedidosService {
       meses,
       itens,
       cupons,
+      pedidosDetalhes: {
+        items,
+        total: Number(summary.pedidos),
+        page: q.page,
+        limit: q.limit,
+      },
+      periodo: {
+        inicio: q.inicio ?? null,
+        fim: q.fim ?? null,
+        referencia: 'finalizadoEm',
+        fuso: 'America/Sao_Paulo',
+      },
     };
   }
 }
